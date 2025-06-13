@@ -119,7 +119,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
-    if not args.update:
+    if not args.update and not args.target:
         print("[-] [A target must be specified unless the --update option is used]\n")
         parser.print_help()
         exit()
