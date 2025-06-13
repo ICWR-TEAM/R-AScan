@@ -31,7 +31,7 @@ class RAScan:
         self.final_result = {"result": []}
 
     def update_scanners_from_github(self):
-        print("[*] [Checking for updates]")
+        print("[*] [Update Scanners]")
         url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
         try:
             for f in requests.get(url, timeout=10).json():
