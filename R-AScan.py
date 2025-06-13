@@ -72,7 +72,7 @@ class RAScan:
     def run_all(self):
         if self.args.update:
             self.update_scanners_from_github()
-            print("[*] [Update complete. Exiting as per '--update' flag.]")
+            print("[*] [Update complete]")
             
             if not self.args.target:
                 return
