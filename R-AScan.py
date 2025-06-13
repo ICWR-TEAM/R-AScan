@@ -31,7 +31,7 @@ class RAScan:
         self.final_result = {"result": []}
 
     def update_scanners_from_github(self):
-        print("[*] [Checking for updates...]")
+        print("[*] [Checking for updates]")
         url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
         try:
             res = requests.get(url, timeout=10)
@@ -39,7 +39,7 @@ class RAScan:
                 if f["name"].endswith(".py"):
                     path = self.scanner_dir / f["name"]
                     if not path.exists():
-                        print(f"[+] [Downloading {f['name']}]")
+                        print(f"[+] [Downloading: {f['name']}]")
                         code = requests.get(f["download_url"], timeout=10).text
                         path.write_text(code, encoding="utf-8")
         except Exception as e:
