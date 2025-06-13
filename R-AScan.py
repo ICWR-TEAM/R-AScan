@@ -70,8 +70,8 @@ class RAScan:
         return None
 
     def run_all(self):
-        self.update_scanners_from_github()
         if self.args.update:
+            self.update_scanners_from_github()
             print("[*] [Update complete. Exiting as per '--update' flag.]")
             return
         
@@ -116,9 +116,6 @@ if __name__ == "__main__":
         help="Only update scanner modules without scanning"
     )
     args = parser.parse_args()
-    
-    if not args.update and not args.target:
-        parser.error("argument -x/--target is required unless --update is specified")
 
     scanner = RAScan(args)
     scanner.run_all()
