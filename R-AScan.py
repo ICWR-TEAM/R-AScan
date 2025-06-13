@@ -118,6 +118,9 @@ if __name__ == "__main__":
         help="Only update scanner modules without scanning"
     )
     args = parser.parse_args()
+    
+    if not args.update:
+        print("[*] [A target must be specified unless the --update option is used]")
 
     scanner = RAScan(args)
     scanner.run_all()
