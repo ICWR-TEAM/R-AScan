@@ -100,7 +100,7 @@ class RAScan:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-x", "--target", required=True,
+        "-x", "--target",
         help="Target host (domain or IP)"
     )
     parser.add_argument(
