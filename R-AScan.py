@@ -37,13 +37,12 @@ class RAScan:
             for f in requests.get(url, timeout=10).json():
                 if f["name"].endswith(".py"):
                     path = self.scanner_dir / f["name"]
-                    if not path.exists():
-                        try:
-                            code = requests.get(f["download_url"], timeout=10).text
-                            path.write_text(code, encoding="utf-8")
-                            print(f"[+] [Downloaded: {f['name']}]")
-                        except Exception as e:
-                            print(f"[!] Failed to download {f['name']}: {e}")
+                    try:
+                        code = requests.get(f["download_url"], timeout=10).text
+                        path.write_text(code, encoding="utf-8")
+                        print(f"[+] [Downloaded: {f['name']}]")
+                    except Exception as e:
+                        print(f"[!] Failed to download {f['name']}: {e}")
         except Exception as e:
             print(f"[!] Update error: {e}")
 
