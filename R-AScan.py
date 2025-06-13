@@ -34,14 +34,16 @@ class RAScan:
         print("[*] [Checking for updates]")
         url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
         try:
-            res = requests.get(url, timeout=10)
-            for f in res.json():
+            for f in requests.get(url, timeout=10).json():
                 if f["name"].endswith(".py"):
                     path = self.scanner_dir / f["name"]
                     if not path.exists():
-                        print(f"[+] [Downloading: {f['name']}]")
-                        code = requests.get(f["download_url"], timeout=10).text
-                        path.write_text(code, encoding="utf-8")
+                        try:
+                            code = requests.get(f["download_url"], timeout=10).text
+                            path.write_text(code, encoding="utf-8")
+                            print(f"[+] [Downloaded: {f['name']}]")
+                        except Exception as e:
+                            print(f"[!] Failed to download {f['name']}: {e}")
         except Exception as e:
             print(f"[!] Update error: {e}")
 
