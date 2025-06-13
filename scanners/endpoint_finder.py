@@ -19,13 +19,15 @@ class EndpointDump:
         self.session.headers.update(HTTP_HEADERS)
 
     def fetch_url(self, path):
-        url = f"http://{self.target}{path}"
-        try:
-            r = self.session.get(url, timeout=DEFAULT_TIMEOUT)
-            if r.status_code == 200:
-                return r.text
-        except:
-            pass
+        protocols = ["http", "https"]
+        for proto in protocols:
+            url = f"{proto}://{self.target}{path}"
+            try:
+                r = self.session.get(url, timeout=DEFAULT_TIMEOUT, allow_redirects=True)
+                if r.status_code == 200:
+                    return r.text
+            except:
+                continue
         return None
 
     def extract_from_json(self, content):
