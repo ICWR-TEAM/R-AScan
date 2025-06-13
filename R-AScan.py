@@ -70,7 +70,6 @@ class RAScan:
 
     def run_all(self):
         self.update_scanners_from_github()
-        print("\n")
         print(f"[*] [Starting scan on: {self.args.target}]")
         modules = self.discover_modules()
 
