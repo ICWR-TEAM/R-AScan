@@ -7,7 +7,7 @@
 
 # R-AScan (Rusher Automatic Scanner)
 
-R-AScan is a modular, multithreaded vulnerability scanner framework written in Python. It automatically loads and runs all scanning modules located in the scanners/ directory.
+R-AScan is a modular, multithreaded vulnerability scanner framework written in Python. It automatically loads and runs all scanning modules located in the `scanners/` directory.
 
 ---
 
