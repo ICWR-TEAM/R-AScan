@@ -17,6 +17,7 @@ import json
 import warnings
 import argparse
 import importlib.util
+import requests
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -29,11 +30,23 @@ class RAScan:
         self.scanner_dir = Path(__file__).parent / scanner_dir
         self.final_result = {"result": []}
 
+    def update_scanners_from_github(self):
+        print("[*] [Checking for updates...]")
+        url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
+        try:
+            res = requests.get(url, timeout=10)
+            for f in res.json():
+                if f["name"].endswith(".py"):
+                    path = self.scanner_dir / f["name"]
+                    if not path.exists():
+                        print(f"[+] [Downloading {f['name']}]")
+                        code = requests.get(f["download_url"], timeout=10).text
+                        path.write_text(code, encoding="utf-8")
+        except Exception as e:
+            print(f"[!] Update error: {e}")
+
     def discover_modules(self):
-        return [
-            f for f in self.scanner_dir.glob("*.py")
-            if not f.name.startswith("__")
-        ]
+        return [f for f in self.scanner_dir.glob("*.py") if not f.name.startswith("__")]
 
     def load_module(self, file_path):
         module_name = file_path.stem
@@ -47,28 +60,23 @@ class RAScan:
             module_name, module = self.load_module(file_path)
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
-                result_print = json.dumps(module.scan(self.args), indent=4)
-                print(f"[*] [Module: {module_name}]\n\t└─  Result: \n{result_print}")
+                print(f"[*] [Module: {module_name}]\n\t└─  Result: \n{json.dumps(result, indent=4)}")
                 return {module_name: result}
             else:
-                print(f"[!] Skipping {module_name} — no 'scan(target)' function found.")
+                print(f"[!] [Skipping {module_name} — no 'scan(target)' function found.]")
         except Exception as e:
-            print(f"[-] Error in {file_path.name}: {e}")
+            print(f"[-] [Error in {file_path.name}: {e}]")
         return None
 
     def run_all(self):
-        target = self.args.target
-        print(f"[*] Starting scan on: {target}")
-
+        self.update_scanners_from_github()
+        print("\n")
+        print(f"[*] [Starting scan on: {self.args.target}]")
         modules = self.discover_modules()
 
         with ThreadPoolExecutor(max_workers=self.args.threads) as executor:
-            future_to_module = {
-                executor.submit(self.scan_module, mod): mod
-                for mod in modules
-            }
-
-            for future in as_completed(future_to_module):
+            futures = {executor.submit(self.scan_module, mod): mod for mod in modules}
+            for future in as_completed(futures):
                 result = future.result()
                 if result:
                     self.final_result["result"].append(result)
@@ -76,13 +84,13 @@ class RAScan:
         output_path = (
             Path(self.args.output)
             if self.args.output else
-            Path(__file__).parent / f"scan_output-{target}.json"
+            Path(__file__).parent / f"scan_output-{self.args.target}.json"
         )
 
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(self.final_result, f, indent=2)
 
-        print(f"[*] Scan complete. Results saved to '{output_path}'")
+        print(f"[*] [Scan complete. Results saved to '{output_path}']")
 
 
 if __name__ == "__main__":
@@ -101,6 +109,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
     scanner = RAScan(args)
     scanner.run_all()
