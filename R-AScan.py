@@ -107,7 +107,14 @@ if __name__ == "__main__":
         "-o", "--output", type=str,
         help="Custom output file path (optional)"
     )
-
+    parser.add_argument(
+        "--update", action="store_true",
+        help="Only update scanner modules without scanning"
+    )
     args = parser.parse_args()
+    
+    if not args.update and not args.target:
+        parser.error("argument -x/--target is required unless --update is specified")
+
     scanner = RAScan(args)
     scanner.run_all()
