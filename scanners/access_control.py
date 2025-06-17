@@ -1,5 +1,6 @@
 import requests
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class AccessControlScanner:
     SENSITIVE_ENDPOINTS = [
@@ -9,11 +10,13 @@ class AccessControlScanner:
         "/config", "/.env", "/backup.zip",
     ]
 
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.args = args
+        self.target = args.target
+        self.max_workers = args.threads
 
-    def check_endpoint(self, endpoint):
-        url = f"http://{self.target}{endpoint}"
+    def check_endpoint(self, protocol, endpoint):
+        url = f"{protocol}://{self.target}{endpoint}"
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
             return {
@@ -27,11 +30,18 @@ class AccessControlScanner:
 
     def scan(self):
         results = []
-        for endpoint in self.SENSITIVE_ENDPOINTS:
-            result = self.check_endpoint(endpoint)
-            results.append(result)
+        tasks = []
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            for endpoint in self.SENSITIVE_ENDPOINTS:
+                for protocol in ["http", "https"]:
+                    tasks.append(executor.submit(self.check_endpoint, protocol, endpoint))
+
+            for future in as_completed(tasks):
+                results.append(future.result())
+
         return {"access_control_results": results}
 
 def scan(args=None):
-    scanner = AccessControlScanner(args.target)
+    scanner = AccessControlScanner(args)
     return scanner.scan()
