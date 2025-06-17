@@ -61,7 +61,7 @@ class RAScan:
             module_name, module = self.load_module(file_path)
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
-                print(f"[*] [Module: {module_name}]\n\t└─  Result: \n{json.dumps(result, indent=4)}")
+                print(f"[*] [Module: {module_name}]\n└─  Result: \n{json.dumps(result, indent=4)}")
                 return {module_name: result}
             else:
                 print(f"[!] [Skipping {module_name} — no 'scan(target)' function found.]")
