@@ -5,3 +5,4 @@ HTTP_HEADERS = {
 }
 
 DEFAULT_TIMEOUT = 5
+COMMON_ENDPOINTS = "resources/common_endpoints.txt"
