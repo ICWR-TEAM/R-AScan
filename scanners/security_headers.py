@@ -27,7 +27,7 @@ class SecurityHeaderScanner:
                 return res
             except requests.RequestException:
                 continue
-        raise Exception("Tidak dapat mengakses target.")
+        raise Exception("Cannot access target.")
 
     def _check_headers(self, response):
         headers = {k.lower(): v for k, v in response.headers.items()}
