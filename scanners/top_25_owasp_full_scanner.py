@@ -1,7 +1,7 @@
 import requests, re, json
 from urllib.parse import urljoin, urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS
 
 class Top25FastScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
@@ -24,12 +24,6 @@ class Top25FastScanner:
         "XSS": ["q", "s", "search", "id", "lang", "keyword", "query", "page", "keywords", "year", "view", "email", "type", "name", "p", "month", "image", "list_type", "url", "terms", "categoryid", "key", "login", "begindate", "enddate"]
     }
 
-    COMMON_ENDPOINTS = [
-        "/", "/search", "/api", "/login", "/view", "/page", "/load",
-        "/home", "/dashboard", "/profile", "/account", "/settings", "/register", "/submit",
-        "/details", "/products", "/users", "/data", "/item", "/results", "/report", "/admin"
-    ]
-
     def __init__(self, args):
         self.target = f"http://{args.target}".rstrip("/")
         self.thread = args.threads
@@ -37,7 +31,7 @@ class Top25FastScanner:
         self.session.headers.update(HTTP_HEADERS)
 
     def scan(self):
-        endpoints = list(self.COMMON_ENDPOINTS)[:50]
+        endpoints = open(COMMON_ENDPOINTS, "r").read().splitlines()
         tasks = []
         results = []
 
