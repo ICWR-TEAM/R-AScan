@@ -108,7 +108,7 @@ class BrokenAccessControlScanner:
         endpoints = set()
         for pat in patterns:
             endpoints.update(re.findall(pat, content))
-        # clean tuples from grouped regex
+
         return {e if isinstance(e, str) else e[0] for e in endpoints}
 
     def _find_js_files(self, content):
