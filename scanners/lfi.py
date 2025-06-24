@@ -66,18 +66,16 @@ class LFIScanner:
             if self.verbose:
                 colored_module = self.printer.color_text(self.module_name, "cyan")
                 colored_url = self.printer.color_text(url, "yellow")
-                print(f"[-] [Module: {colored_module}] Checked: {colored_url}")
+                print(f"[-] [Module: {colored_module}] [Checked: {colored_url}]")
         except Exception as e:
             colored_module = self.printer.color_text(self.module_name, "cyan")
             colored_url = self.printer.color_text(url, "yellow")
             colored_error = self.printer.color_text(str(e), "red")
-            print(f"[!] [Module: {colored_module}] Error checking {colored_url} - {colored_error}")
+            print(f"[!] [Module: {colored_module}] [Error checking {colored_url} - {colored_error}]")
         return None
 
     def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
-        print(f"[*] [Module: {colored_module}] Starting LFI scan on {self.target}")
-
         params = self.extract_params_from_dom()
         tasks = []
 
@@ -96,7 +94,7 @@ class LFIScanner:
                 result = future.result()
                 if result:
                     colored_url = self.printer.color_text(result, "yellow")
-                    print(f"[+] [Module: {colored_module}] LFI Detected: {colored_url}")
+                    print(f"[+] [Module: {colored_module}] [LFI Detected: {colored_url}]")
                     return [{"vulnerable": True, "payload": result}]
 
         print(f"[*] [Module: {colored_module}] No LFI detected.")
