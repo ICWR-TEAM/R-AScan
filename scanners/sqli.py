@@ -1,7 +1,7 @@
-import requests
-import re
+import requests, os, re
 from urllib.parse import urlencode
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from module.other import Other
 
 class SQLiScanner:
     def __init__(self):
@@ -24,6 +24,8 @@ class SQLiScanner:
             "syntax error",
             "sqlstate",
         ]
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def scan(self, target):
         result = {"vulnerable": False, "details": []}
@@ -48,6 +50,9 @@ class SQLiScanner:
                         "payload": payload,
                         "type": "error-based"
                     })
+                    colored_module = self.printer.color_text(self.module_name, "cyan")
+                    colored_url = self.printer.color_text(resp.url, "yellow")
+                    print(f"[*] [Module: {colored_module}] [Error-based SQLi Detected] [URL: {colored_url}]")
                     break
                 elif payload in resp.text:
                     result["vulnerable"] = True
@@ -56,6 +61,9 @@ class SQLiScanner:
                         "payload": payload,
                         "type": "reflected"
                     })
+                    colored_module = self.printer.color_text(self.module_name, "cyan")
+                    colored_url = self.printer.color_text(resp.url, "yellow")
+                    print(f"[*] [Module: {colored_module}] [Reflected SQLi Detected] [URL: {colored_url}]")
                     break
 
             except Exception as e:
