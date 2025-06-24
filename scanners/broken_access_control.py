@@ -6,6 +6,7 @@ class BrokenAccessControlScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 
     def __init__(self, args):
+        self.args = args
         self.target = args.target
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
@@ -31,7 +32,7 @@ class BrokenAccessControlScanner:
                         str(status), "green" if status in [200, 201, 202, 203, 204, 206, 207] else "red"
                     )
 
-                    if args.verbose or status in [200, 201, 202, 203, 204, 206, 207]:
+                    if self.args.verbose or status in [200, 201, 202, 203, 204, 206, 207]:
                         print(f"[*] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
 
                     if status in [200, 201, 202, 203, 204, 206, 207]:
