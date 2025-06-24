@@ -1,7 +1,8 @@
-import requests, os
+import os
+import requests
 from urllib.parse import urljoin, urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS, PARAMS as GLOBAL_PARAMS
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS, PARAMS
 from module.other import Other
 
 class Top25FastScanner:
@@ -14,78 +15,74 @@ class Top25FastScanner:
         "SSRF": "http://127.0.0.1",
         "XSS": "<script>alert(1)</script>"
     }
-    PARAMS = GLOBAL_PARAMS
+    INDICATORS = {
+        "SQLi": ["mysql", "syntax", "sql", "query failed"],
+        "LFI": ["root:x:0:0", "/bin/bash", "root:x"],
+        "OpenRedirect": ["evil.com"],
+        "RCE": ["uid=", "gid=", "rce_test"],
+        "SSRF": ["localhost", "127.0.0.1"],
+        "XSS": ["<script>alert(1)</script>", "&lt;script&gt;"]
+    }
 
     def __init__(self, args):
         self.target = f"http://{args.target}".rstrip("/")
         self.verbose = args.verbose
-        self.thread = args.threads
+        self.threads = args.threads
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
+        self.endpoints = open(COMMON_ENDPOINTS).read().splitlines()
+        self.params = PARAMS
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
+    def _log(self, level, category, method, param, url, status):
+        cm = self.printer.color_text(self.module_name, "cyan")
+        cat = self.printer.color_text(category, "yellow")
+        m = self.printer.color_text(method, "magenta")
+        p = self.printer.color_text(param, "green")
+        st = self.printer.color_text(str(status), "green" if status == 200 else "red")
+        print(f"[{level}] [Module: {cm}] [Cat:{cat}] [Method:{m}] [Param:{p}] [Status:{st}] {url}")
+
     def scan(self):
-        endpoints = open(COMMON_ENDPOINTS, "r").read().splitlines()
-        tasks = []
         results = []
-        colored_module = self.printer.color_text(self.module_name, "cyan")
+        tasks = []
+        for cat, ps in self.params.items():
+            payload = self.PAYLOAD.get(cat)
+            for endpoint in self.endpoints:
+                url = urljoin(self.target, endpoint)
+                for param in ps:
+                    for method in self.METHODS:
+                        tasks.append((cat, method, url, param, payload))
 
-        with ThreadPoolExecutor(max_workers=self.thread) as executor:
-            for category, params in self.PARAMS.items():
-                payload = self.PAYLOAD[category]
-                for param in params:
-                    for endpoint in endpoints:
-                        url = urljoin(self.target, endpoint)
-                        for method in self.METHODS:
-                            tasks.append(executor.submit(
-                                self._scan_once, category, method, url, endpoint, param, payload
-                            ))
-
-            for future in as_completed(tasks):
-                res = future.result()
+        with ThreadPoolExecutor(max_workers=self.threads) as ex:
+            futures = {ex.submit(self._scan_once, cat, method, url, param, payload): (cat, method, url, param, payload)
+                       for cat, method, url, param, payload in tasks}
+            for fut in as_completed(futures):
+                res = fut.result()
                 if res:
-                    colored_cat = self.printer.color_text(res["category"], "yellow")
-                    colored_method = self.printer.color_text(res["method"], "magenta")
-                    colored_param = self.printer.color_text(res["param"], "green")
-                    colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
-
-                    print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
                     results.append(res)
+                    self._log("+", **res)
+                elif self.verbose:
+                    cat, method, url, param, payload = futures[fut]
+                    self._log("-", cat, method, param, url, res.get("status", "ERR"))
 
         return {"target": self.target, "findings": results}
 
-    def _scan_once(self, category, method, url, endpoint, param, value):
+    def _scan_once(self, category, method, url, param, payload):
+        data = {param: payload}
+        fullurl = url if method != "GET" else f"{url}?{urlencode(data)}"
         try:
-            data = {param: value}
-            if method == "GET":
-                full_url = f"{url}?{urlencode(data)}"
-                r = self.session.get(full_url, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
-            else:
-                r = self.session.request(method, url, data=data, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
-                full_url = url
-
-            if r.status_code in [200, 201] and not any(bad in r.text.lower() for bad in ["not found", "error", "forbidden", "denied"]):
-                indicators = {
-                    "SQLi": ["mysql", "syntax", "sql", "query failed"],
-                    "LFI": ["root:x:0:0", "/bin/bash"],
-                    "OpenRedirect": ["evil.com"],
-                    "RCE": ["uid=", "gid="],
-                    "SSRF": ["localhost", "127.0.0.1"],
-                    "XSS": ["<script>alert(1)</script>"]
-                }
-                signs = indicators.get(category, [])
-                if any(s in r.text.lower() for s in signs):
-                    return {
-                        "category": category,
-                        "method": method,
-                        "endpoint": endpoint,
-                        "param": param,
-                        "payload": value,
-                        "status": r.status_code
-                    }
+            resp = self.session.request(method, url, params=data if method=="GET" else None, data=None if method=="GET" else data,
+                                        timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+            text = resp.text.lower()
+            if resp.status_code in (200, 201):
+                for sig in self.INDICATORS.get(category, []):
+                    if sig in text:
+                        return {"category": category, "method": method, "param": param,
+                                "url": fullurl, "status": resp.status_code}
         except:
-            return None
+            pass
+        return None
 
 def scan(args=None):
     return Top25FastScanner(args).scan()
