@@ -1,30 +1,53 @@
 import requests, os
 from urllib.parse import urlencode
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class XSSScanner:
-    def __init__(self):
+    def __init__(self, args):
+        self.target = args.target
         self.payload = "<script>alert('xss')</script>"
         self.headers = HTTP_HEADERS
         self.timeout = DEFAULT_TIMEOUT
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self, target):
-        base = target if target.startswith("http") else f"http://{target}"
+    def run(self):
+        base = None
+        for proto in ["https://", "http://"]:
+            try:
+                url = f"{proto}{self.target}"
+                resp = requests.get(url, headers=self.headers, timeout=self.timeout, verify=False)
+                if resp.status_code < 400:
+                    base = url
+                    break
+            except:
+                continue
+        if base is None:
+            base = f"http://{self.target}"
+
         result = {
             "reflected": {"vulnerable": False, "url": ""},
             "stored": {"submitted": False, "vulnerable": False, "url": ""},
             "dom": {"vulnerable": False, "scripts": []}
         }
+
         try:
-            result.update(self.test_reflected(base))
-            result.update(self.test_stored(base))
-            result.update(self.test_dom(base))
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = {
+                    executor.submit(self.test_reflected, base): "reflected",
+                    executor.submit(self.test_stored, base): "stored",
+                }
+                for future in as_completed(futures):
+                    res = future.result()
+                    result.update(res)
+            dom_res = self.test_dom(base)
+            result.update(dom_res)
         except Exception as e:
             result["error"] = str(e)
+
         return result
 
     def test_reflected(self, base):
@@ -68,12 +91,10 @@ class XSSScanner:
             soup = BeautifulSoup(resp.text, "html.parser")
             scripts = soup.find_all("script")
             dom_scripts = []
-
             for script in scripts:
                 content = script.string or ""
                 if any(keyword in content for keyword in ["document.location", "document.write", "innerHTML", "eval(", "window.location"]):
                     dom_scripts.append(content.strip()[:100])
-
             if dom_scripts:
                 result["dom"]["vulnerable"] = True
                 result["dom"]["scripts"] = dom_scripts
@@ -84,4 +105,4 @@ class XSSScanner:
         return result
 
 def scan(args=None):
-    return XSSScanner().scan(args.target)
+    return XSSScanner(args).run()
