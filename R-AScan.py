@@ -61,8 +61,8 @@ class RAScan:
             module_name, module = self.load_module(file_path)
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
-                #if self.args.verbose:
-                #    print(f"[*] [Module: {module_name}]\n└─  Result: \n{json.dumps(result, indent=4)}")
+                if self.args.verbose:
+                    print(f"[*] [Module: {module_name}]\n└─  Result: \n{json.dumps(result, indent=4)}")
                 #else:
                 #    print(f"[*] [Module: {module_name}]")
                 return {module_name: result}
