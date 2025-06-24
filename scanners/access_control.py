@@ -1,6 +1,7 @@
 import requests, os
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from module.other import Other
 
 class AccessControlScanner:
     SENSITIVE_ENDPOINTS = [
@@ -26,7 +27,14 @@ class AccessControlScanner:
                 "content_length": len(r.content),
                 "redirect_location": r.headers.get("Location", None),
             }
-            print(f"[+] [Module: {module_name}] [URL: {result["url"]}] [Status Code: {result["status_code"]}] [Redirect Locatoin: {result["redirect_location"]}]")
+            
+            colored_module = self.utils.color_text(module_name, "cyan")
+            colored_url = self.utils.color_text(result["url"], "yellow")
+            colored_status = self.utils.color_text(str(result["status_code"]), "green")
+            colored_redirect = self.utils.color_text(str(result["redirect_location"]), "magenta")
+            
+            print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
+
             return result
         except Exception as e:
             print(f"[-] [Module: {module_name}] [Error: {e}]")
