@@ -20,6 +20,7 @@ import importlib.util
 import requests
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from module.other import Other
 
 warnings.filterwarnings("ignore")
 sys.dont_write_bytecode = True
@@ -59,7 +60,8 @@ class RAScan:
     def scan_module(self, file_path):
         try:
             module_name, module = self.load_module(file_path)
-            print(f"[*] [Module: {module_name}] [Stared Scan]")
+            colored_module = Other().color_text(module_name, "cyan")
+            print(f"[*] [Module: {colored_module}] [Stared Scan]")
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
                 if self.args.verbose:
