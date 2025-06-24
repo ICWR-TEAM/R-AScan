@@ -24,7 +24,6 @@ class BrokenAccessControlScanner:
             for method in self.METHODS:
                 status = self._request(method, url)
                 if status:
-                    # Output berwarna
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_method = self.printer.color_text(method, "magenta")
                     colored_path = self.printer.color_text(path, "yellow")
