@@ -23,7 +23,7 @@ class ServiceEnumerator:
 
     def __init__(self, args):
         self.target = args.target
-        self.thread = getattr(args, "threads", 5)
+        self.thread = args.threads
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
         self.results = {
