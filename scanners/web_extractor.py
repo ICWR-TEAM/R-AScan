@@ -97,7 +97,7 @@ class WebExtractor:
             result['error'] = str(e)
         return result
 
-    def run(self, target):
+    def run(self):
         target = self.target
         open_ports = [port for port in self.DEFAULT_PORTS if self.is_port_open(target, port)]
         scanned_services = []
