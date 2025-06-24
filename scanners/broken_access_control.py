@@ -23,7 +23,7 @@ class BrokenAccessControlScanner:
             url = f"{self.base_url}{path}"
             for method in self.METHODS:
                 status = self._request(method, url)
-                if status and status in [200, 201]:
+                if status and status in [200, 201, 202, 203, 204, 206, 207]:
                     bac_results.append({
                         "method": method,
                         "path": path,
