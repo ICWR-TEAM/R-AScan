@@ -1,5 +1,6 @@
-import requests
+import requests, os
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from module.other import Other
 
 class WebFingerprintScanner:
     def __init__(self):
@@ -17,15 +18,26 @@ class WebFingerprintScanner:
             "X-Amz-Cf-Id",
             "X-Turbo-Charged-By"
         ]
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def scan(self, target):
+        colored_module = self.printer.color_text(self.module_name, "cyan")
         try:
             url = f"http://{target}"
             response = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
             headers = response.headers
-
             fingerprints = {h: headers[h] for h in self.fingerprint_headers if h in headers}
             tech_insight = self._analyze_headers(fingerprints)
+
+            if fingerprints:
+                print(f"[*] [Module: {colored_module}] Found fingerprint headers:")
+                for k, v in fingerprints.items():
+                    print(f"    [*] {k}: {v}")
+            if tech_insight:
+                print(f"[*] [Module: {colored_module}] Detected technologies: {', '.join(tech_insight)}")
+            else:
+                print(f"[*] [Module: {colored_module}] No technology detected.")
 
             return {
                 "target": target,
@@ -34,6 +46,8 @@ class WebFingerprintScanner:
             }
 
         except Exception as e:
+            colored_error = self.printer.color_text(str(e), "red")
+            print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
             return {"error": str(e)}
 
     def _analyze_headers(self, headers):
