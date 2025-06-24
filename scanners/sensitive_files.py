@@ -3,12 +3,15 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT, SENSITIVE_FILES
 from module.other import Other
 
 class SensitiveFileScanner:
-    def __init__(self):
+    def __init__(self, args):
+        self.target = args.target
+        self.verbose = args.verbose
         self.paths = open(SENSITIVE_FILES, "r").read().splitlines()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self, target):
+    def scan(self):
+        target = self.target
         exposed = []
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
@@ -16,7 +19,7 @@ class SensitiveFileScanner:
             try:
                 url = f"http://{target}{path}"
                 response = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
-                if response.status_code == 200 and any(keyword in response.text.lower() for keyword in ["password", "user", "host", "env", "config"]):
+                if self.verbose or (response.status_code == 200 and any(keyword in response.text.lower() for keyword in ["password", "user", "host", "env", "config"])):
                     colored_file = self.printer.color_text(path, "yellow")
                     print(f"[*] [Module: {colored_module}] Exposed: {colored_file}")
                     exposed.append({"file": path, "url": url, "status": 200})
@@ -31,4 +34,4 @@ class SensitiveFileScanner:
         return exposed if exposed else [{"exposed_files": False}]
 
 def scan(args=None):
-    return SensitiveFileScanner().scan(args.target)
+    return SensitiveFileScanner(args).scan()
