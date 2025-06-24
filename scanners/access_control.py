@@ -19,6 +19,7 @@ class AccessControlScanner:
         url = f"{protocol}://{self.target}{endpoint}"
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+
             if r.status_code == 200:
                 return {
                     "url": url,
