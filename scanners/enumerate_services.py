@@ -1,4 +1,5 @@
 import socket, os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from module.other import Other
 
 class ServiceEnumerator:
@@ -15,14 +16,20 @@ class ServiceEnumerator:
         3306: "MySQL",
         3389: "RDP",
         5900: "VNC",
-        8080: "HTTP-ALT"
+        8080: "HTTP-ALT",
+        8000: "Custom-HTTP",
+        8443: "HTTPS-ALT"
     }
 
-    def __init__(self, target):
-        self.target = target
-        self.open_services = {}
+    def __init__(self, args):
+        self.target = args.target
+        self.thread = getattr(args, "threads", 5)
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
+        self.results = {
+            "open_ports": [],
+            "open_services": {}
+        }
 
     def grab_banner(self, port):
         try:
@@ -41,9 +48,10 @@ class ServiceEnumerator:
             sock.settimeout(2)
             result = sock.connect_ex((self.target, port))
             if result == 0:
-                banner = self.grab_banner(port)
                 service = self.COMMON_SERVICES.get(port, "Unknown")
-                self.open_services[port] = {
+                banner = self.grab_banner(port)
+                self.results["open_ports"].append(port)
+                self.results["open_services"][port] = {
                     "service": service,
                     "banner": banner if banner else "No banner"
                 }
@@ -51,16 +59,21 @@ class ServiceEnumerator:
                 colored_port = self.printer.color_text(str(port), "yellow")
                 colored_service = self.printer.color_text(service, "magenta")
                 print(f"[*] [Module: {colored_module}] [Open Port: {colored_port}] [Service: {colored_service}]")
-            sock.close()
-        except Exception as e:
+        except:
             pass
 
-    def scan_all(self):
-        for port in self.COMMON_SERVICES.keys():
-            self.scan_port(port)
-        return self.open_services
+    def scan(self):
+        ports = set(self.COMMON_SERVICES.keys())
+        with ThreadPoolExecutor(max_workers=self.thread) as executor:
+            futures = [executor.submit(self.scan_port, port) for port in ports]
+            for _ in as_completed(futures):
+                pass
+
+        if not self.results["open_ports"]:
+            colored_module = self.printer.color_text(self.module_name, "cyan")
+            print(f"[*] [Module: {colored_module}] No open ports or services found.")
+
+        return self.results
 
 def scan(args=None):
-    enumerator = ServiceEnumerator(args.target)
-    results = enumerator.scan_all()
-    return {"open_services": results}
+    return PortServiceScanner(args).scan()
