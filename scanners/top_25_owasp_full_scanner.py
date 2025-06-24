@@ -5,16 +5,16 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS, PARAMS as GL
 from module.other import Other
 
 class Top25FastScanner:
-    METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+
     PAYLOAD = {
-        "SQLi": "1' OR '1'='1",
+        "SQLi": "1 OR 1=1",
         "LFI": "../../../../etc/passwd",
-        "OpenRedirect": "https://evil.com",
-        "RCE": "`id`",
+        "OpenRedirect": "http://evil.com",
+        "RCE": "id",
         "SSRF": "http://127.0.0.1",
         "XSS": "<script>alert(1)</script>"
     }
-    PARAMS = GLOBAL_PARAMS
 
     INDICATORS = {
         "SQLi": ["mysql", "syntax", "sql", "query failed"],
@@ -24,6 +24,8 @@ class Top25FastScanner:
         "SSRF": ["localhost", "127.0.0.1"],
         "XSS": ["<script>alert(1)</script>"]
     }
+
+    PARAMS = GLOBAL_PARAMS
 
     def __init__(self, args):
         self.target = f"http://{args.target}".rstrip("/")
@@ -35,22 +37,16 @@ class Top25FastScanner:
         self.printer = Other()
 
     def scan(self):
-        try:
-            with open(COMMON_ENDPOINTS, "r") as f:
-                endpoints = f.read().splitlines()
-        except Exception as e:
-            print(f"[!] Failed to load endpoints: {e}")
-            return {"target": self.target, "findings": []}
-
+        endpoints = open(COMMON_ENDPOINTS, "r").read().splitlines()
         tasks = []
         results = []
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
         with ThreadPoolExecutor(max_workers=self.thread) as executor:
             for category, params in self.PARAMS.items():
-                payload = self.PAYLOAD.get(category)
-                if not payload:
+                if category not in self.PAYLOAD:
                     continue
+                payload = self.PAYLOAD[category]
                 for param in params:
                     for endpoint in endpoints:
                         url = urljoin(self.target, endpoint)
@@ -61,42 +57,60 @@ class Top25FastScanner:
 
             for future in as_completed(tasks):
                 res = future.result()
-                if res:
-                    colored_cat = self.printer.color_text(res["category"], "yellow")
-                    colored_method = self.printer.color_text(res["method"], "magenta")
-                    colored_param = self.printer.color_text(f"[{res['param']}]", "green")
-                    colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
-                    print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
-                    results.append(res)
+                if not res:
+                    continue
 
-        if not results and self.verbose:
-            print(f"[*] [Module: {colored_module}] [Cat: UNKNOWN] [Method: -] [Param: [-]] [Status: Not Vuln]")
+                is_vuln = res.get("vuln", False)
+                status = res.get("status", "-")
+                cat = res.get("category", "UNKNOWN")
+                method = res.get("method", "-")
+                param = res.get("param", "-")
+
+                colored_cat = self.printer.color_text(cat, "yellow")
+                colored_method = self.printer.color_text(method, "magenta")
+                colored_param = self.printer.color_text(f"[{param}]", "green")
+                colored_status = self.printer.color_text(str(status), "green" if is_vuln else "red")
+                message = f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]"
+
+                if self.verbose or is_vuln:
+                    print(message)
+
+                results.append(res)
 
         return {"target": self.target, "findings": results}
 
     def _scan_once(self, category, method, url, endpoint, param, value):
         try:
             data = {param: value}
-            if method == "GET":
-                r = self.session.get(f"{url}?{urlencode(data)}", timeout=DEFAULT_TIMEOUT, allow_redirects=False)
-            else:
-                r = self.session.request(method, url, data=data, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+            full_url = f"{url}?{urlencode(data)}" if method == "GET" else url
+            r = self.session.request(method, full_url, data=data if method != "GET" else None, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
 
-            if r.status_code not in [401, 403, 404, 405] and r.status_code < 500:
-                content = r.text.lower()
-                if any(i in content for i in self.INDICATORS.get(category, [])):
-                    return {
-                        "category": category,
-                        "method": method,
-                        "endpoint": endpoint,
-                        "param": param,
-                        "payload": value,
-                        "status": r.status_code
-                    }
-        except Exception as e:
-            if self.verbose:
-                print(f"[!] Error scanning {url} with param {param}: {e}")
-        return None
+            if r.status_code in [401, 403, 404, 405] or r.status_code >= 500:
+                return {
+                    "category": category,
+                    "method": method,
+                    "endpoint": endpoint,
+                    "param": param,
+                    "payload": value,
+                    "status": r.status_code,
+                    "vuln": False
+                }
+
+            signs = self.INDICATORS.get(category, [])
+            is_vuln = any(sig.lower() in r.text.lower() for sig in signs)
+
+            return {
+                "category": category,
+                "method": method,
+                "endpoint": endpoint,
+                "param": param,
+                "payload": value,
+                "status": r.status_code,
+                "vuln": is_vuln
+            }
+
+        except Exception:
+            return None
 
 def scan(args=None):
     return Top25FastScanner(args).scan()
