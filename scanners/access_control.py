@@ -1,4 +1,4 @@
-import requests
+import requests, os
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -33,6 +33,7 @@ class AccessControlScanner:
     def scan(self):
         results = []
         tasks = []
+        module_name = os.path.basename(__file__)
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             for endpoint in self.SENSITIVE_ENDPOINTS:
@@ -40,6 +41,11 @@ class AccessControlScanner:
                     tasks.append(executor.submit(self.check_endpoint, protocol, endpoint))
 
             for future in as_completed(tasks):
+                result = future.result()
+                print(f"[*] [Module: {module_name}] [Result:")
+                for key, value in result.items():
+                    print(f"    {key}: {value}")
+                print("]")
                 results.append(future.result())
 
         return {"access_control_results": results}
