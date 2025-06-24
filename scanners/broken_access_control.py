@@ -30,7 +30,7 @@ class BrokenAccessControlScanner:
                     colored_status = self.printer.color_text(
                         str(status), "green" if status in [200, 201, 202, 203, 204, 206, 207] else "red"
                     )
-                    print(f"[+] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
+                    print(f"[*] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
 
                     if status in [200, 201, 202, 203, 204, 206, 207]:
                         bac_results.append({
