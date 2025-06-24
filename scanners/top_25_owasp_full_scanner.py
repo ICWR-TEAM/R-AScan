@@ -1,7 +1,7 @@
 import requests, os
 from urllib.parse import urljoin, urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS, PARAMS
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS, PARAMS as GLOBAL_PARAMS
 from module.other import Other
 
 class Top25FastScanner:
@@ -14,7 +14,7 @@ class Top25FastScanner:
         "SSRF": "http://127.0.0.1",
         "XSS": "<script>alert(1)</script>"
     }
-    PARAMS = PARAMS
+    PARAMS = GLOBAL_PARAMS
 
     def __init__(self, args):
         self.target = f"http://{args.target}".rstrip("/")
