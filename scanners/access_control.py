@@ -18,7 +18,7 @@ class AccessControlScanner:
 
     def check_endpoint(self, protocol, endpoint):
         url = f"{protocol}://{self.target}{endpoint}"
-        module_name = os.path.basename(__file__)
+        module_name = os.path.splitext(os.path.basename(__file__))[0]
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
             result = {
