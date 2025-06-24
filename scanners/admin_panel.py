@@ -1,11 +1,15 @@
 import requests
+import os
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from module.other import Other
 
 class AdminPanelScanner:
     def __init__(self, args):
         self.target = args.target
         self.max_workers = args.threads
+        self.module_name = os.path.basename(__file__)
+        self.printer = Other()
         self.paths = [
             "/admin", "/admin/", "/admin/login", "/admin_login", "/admin-area",
             "/administrator", "/administrator/", "/administrator/login",
@@ -50,6 +54,15 @@ class AdminPanelScanner:
                 result = future.result()
                 if result:
                     found.append(result)
+                    colored_module = self.printer.color_text(self.module_name, "cyan")
+                    colored_url = self.printer.color_text(result.get("url", ""), "yellow")
+                    if "status" in result:
+                        status_color = "green" if result["status"] == 200 else "red"
+                        colored_status = self.printer.color_text(str(result["status"]), status_color)
+                        print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status: {colored_status}]")
+                    elif "error" in result:
+                        colored_error = self.printer.color_text(result["error"], "red")
+                        print(f"[!] [Module: {colored_module}] [URL: {colored_url}] [Error: {colored_error}]")
 
         return found if found else [{"admin_panel_found": False}]
 
