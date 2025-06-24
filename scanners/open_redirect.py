@@ -18,8 +18,8 @@ class OpenRedirectScanner:
     def print_status(self, level, status, url_info):
         colored_module = self.printer.color_text(self.module_name, "cyan")
         status_colored = self.printer.color_text(f"[{status}]", "green" if status == "Vuln" else "red")
-        url_colored = self.printer.color_text(f"[{url_info}]", "yellow")
-        print(f"[{level}] [Module: {colored_module}] {status_colored} {url_colored}")
+        url_colored = self.printer.color_text(f"{url_info}", "yellow")
+        print(f"[{level}] [Module: {colored_module}] [{status_colored}] {url_colored}")
 
     def scan(self):
         results = []
