@@ -61,7 +61,7 @@ class RAScan:
         try:
             module_name, module = self.load_module(file_path)
             colored_module = Other().color_text(module_name, "cyan")
-            print(f"[*] [Module: {colored_module}] [Stared Scan]")
+            print(f"[*] [Module: {colored_module}] [Started Scan]")
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
                 if self.args.verbose:
