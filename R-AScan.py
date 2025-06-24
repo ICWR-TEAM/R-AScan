@@ -61,7 +61,10 @@ class RAScan:
             module_name, module = self.load_module(file_path)
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
-                print(f"[*] [Module: {module_name}]\n└─  Result: \n{json.dumps(result, indent=4)}")
+                if self.args.verbose:
+                    print(f"[*] [Module: {module_name}]\n└─  Result: \n{json.dumps(result, indent=4)}")
+                else:
+                    print(f"[*] [Module: {module_name}]")
                 return {module_name: result}
             else:
                 print(f"[!] [Skipping {module_name} — no 'scan(target)' function found.]")
@@ -116,6 +119,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--update", action="store_true",
         help="Only update scanner modules without scanning"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true",
+        help="Verbose detail log"
     )
     args = parser.parse_args()
     
