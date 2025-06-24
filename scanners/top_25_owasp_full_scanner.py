@@ -61,7 +61,10 @@ class Top25FastScanner:
                     colored_method = self.printer.color_text(res["method"], "magenta")
                     colored_param = self.printer.color_text(res["param"], "green")
                     colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
-                    print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
+
+                    if args.verbose or res["status"] == 200:
+                        print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
+
                     results.append(res)
 
         return {"target": self.target, "findings": results}
