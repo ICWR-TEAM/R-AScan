@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
+
 class LFIScanner:
     def __init__(self, args):
         self.target = args.target
@@ -45,8 +46,10 @@ class LFIScanner:
                 for tag in soup.find_all(["a", "form", "script"]):
                     attr = tag.get("href") or tag.get("action") or tag.string or ""
                     found.update(re.findall(r"[?&]([a-zA-Z0-9_-]+)=", attr))
-            except:
-                continue
+            except Exception as e:
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_error = self.printer.color_text(str(e), "red")
+                print(f"[!] [Module: {colored_module}] Failed extracting params from {url} - {colored_error}")
         return list(found.union(set(self.common_params)))
 
     def is_valid_passwd(self, text):
@@ -61,13 +64,20 @@ class LFIScanner:
             if self.is_valid_passwd(r.text):
                 return url
             if self.verbose:
-                print(f"[-] Checked: {url}")
-        except:
-            pass
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_url = self.printer.color_text(url, "yellow")
+                print(f"[-] [Module: {colored_module}] Checked: {colored_url}")
+        except Exception as e:
+            colored_module = self.printer.color_text(self.module_name, "cyan")
+            colored_url = self.printer.color_text(url, "yellow")
+            colored_error = self.printer.color_text(str(e), "red")
+            print(f"[!] [Module: {colored_module}] Error checking {colored_url} - {colored_error}")
         return None
 
     def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
+        print(f"[*] [Module: {colored_module}] Starting LFI scan on {self.target}")
+
         params = self.extract_params_from_dom()
         tasks = []
 
@@ -79,17 +89,19 @@ class LFIScanner:
                         base += f"/{path}"
                     for param in params:
                         for payload in self.payloads:
-                            tasks.append(executor.submit(self.check_payload, f"{base}?{param}={payload}"))
+                            full_url = f"{base}?{param}={payload}"
+                            tasks.append(executor.submit(self.check_payload, full_url))
 
             for future in as_completed(tasks):
                 result = future.result()
                 if result:
                     colored_url = self.printer.color_text(result, "yellow")
-                    print(f"[*] [Module: {colored_module}] [LFI Detected] [URL: {colored_url}]")
+                    print(f"[+] [Module: {colored_module}] LFI Detected: {colored_url}")
                     return [{"vulnerable": True, "payload": result}]
 
         print(f"[*] [Module: {colored_module}] No LFI detected.")
         return [{"vulnerable": False}]
+
 
 def scan(args=None):
     return LFIScanner(args).run()
