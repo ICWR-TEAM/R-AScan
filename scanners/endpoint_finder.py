@@ -1,6 +1,8 @@
 import requests
 import re
+import os
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from module.other import Other
 
 class EndpointDump:
     COMMON_ENDPOINT_FILES = [
@@ -17,6 +19,8 @@ class EndpointDump:
         self.found_endpoints = set()
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def fetch_url(self, path):
         protocols = ["http", "https"]
@@ -85,6 +89,8 @@ class EndpointDump:
                 self.found_endpoints.update(self.extract_from_html_js(content))
 
     def scan(self):
+        colored_module = self.printer.color_text(self.module_name, "cyan")
+
         for path in self.COMMON_ENDPOINT_FILES:
             content = self.fetch_url(path)
             if content:
@@ -99,6 +105,11 @@ class EndpointDump:
         homepage = self.fetch_url("/")
         if homepage:
             self.found_endpoints.update(self.extract_from_html_js(homepage))
+
+        if self.found_endpoints:
+            print(f"[*] [Module: {colored_module}] [Found {len(self.found_endpoints)} endpoints]")
+        else:
+            print(f"[*] [Module: {colored_module}] No endpoints found.")
 
         return {"endpoints_found": list(sorted(self.found_endpoints))}
 
