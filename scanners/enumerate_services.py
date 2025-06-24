@@ -1,4 +1,5 @@
-import socket
+import socket, os
+from module.other import Other
 
 class ServiceEnumerator:
     COMMON_SERVICES = {
@@ -20,6 +21,8 @@ class ServiceEnumerator:
     def __init__(self, target):
         self.target = target
         self.open_services = {}
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def grab_banner(self, port):
         try:
@@ -39,12 +42,17 @@ class ServiceEnumerator:
             result = sock.connect_ex((self.target, port))
             if result == 0:
                 banner = self.grab_banner(port)
+                service = self.COMMON_SERVICES.get(port, "Unknown")
                 self.open_services[port] = {
-                    "service": self.COMMON_SERVICES.get(port, "Unknown"),
+                    "service": service,
                     "banner": banner if banner else "No banner"
                 }
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_port = self.printer.color_text(str(port), "yellow")
+                colored_service = self.printer.color_text(service, "magenta")
+                print(f"[*] [Module: {colored_module}] [Open Port: {colored_port}] [Service: {colored_service}]")
             sock.close()
-        except:
+        except Exception as e:
             pass
 
     def scan_all(self):
