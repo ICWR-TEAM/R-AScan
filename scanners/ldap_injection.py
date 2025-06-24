@@ -9,7 +9,7 @@ class LDAPInjectionScanner:
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self):
+    def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
         protocols = ["http", "https"]
 
@@ -37,4 +37,4 @@ class LDAPInjectionScanner:
         return {"vulnerability": "LDAP Injection", "status": "not detected"}
 
 def scan(args=None):
-    return LDAPInjectionScanner(args.target).scan()
+    return LDAPInjectionScanner(args.target).run()
