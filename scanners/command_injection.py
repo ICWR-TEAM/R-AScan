@@ -24,7 +24,7 @@ class CommandInjectionScanner:
     def print_status(self, level, status, url, param=None, marker=None):
         colored_module = self.printer.color_text(self.module_name, "cyan")
         colored_url = self.printer.color_text(url, "yellow")
-        status_colored = self.printer.color_text(f"[{status}]", "green" if status == "Vuln" else "red")
+        status_colored = self.printer.color_text(f"{status}", "green" if status == "Vuln" else "red")
 
         extra = ""
         if param:
@@ -34,7 +34,7 @@ class CommandInjectionScanner:
             colored_marker = self.printer.color_text(marker, "green")
             extra += f"[marker={colored_marker}]"
 
-        print(f"[{level}] [Module: {colored_module}] {status_colored} [{colored_url}] {extra}")
+        print(f"[{level}] [Module: {colored_module}] [{status_colored}] [{colored_url}] {extra}")
 
     def scan(self):
         results = []
