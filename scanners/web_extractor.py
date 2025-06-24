@@ -1,10 +1,9 @@
-import requests
+import requests, re, os, socket
 from bs4 import BeautifulSoup
-import re
-import socket
 from urllib.parse import urljoin
 from requests.exceptions import SSLError, ConnectionError
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from module.other import Other
 
 class WebExtractor:
     def __init__(self):
@@ -17,6 +16,8 @@ class WebExtractor:
         self.cookie_regex = re.compile(r'document\.cookie\s*=\s*["\']([^"\']+)["\'];', re.IGNORECASE)
         self.local_storage_regex = re.compile(r'localStorage\.setItem\s*\(\s*["\']([^"\']+)["\']\s*,\s*["\']([^"\']+)["\']\s*\)', re.IGNORECASE)
         self.ox_regex = re.compile(r'\b\w+(?:\.\w+)?\s*\(\s*["\']([^"\']+)["\']\s*,\s*(["\'][^"\']*["\']|{[^}]*}|[^,)]+)', re.IGNORECASE)
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def is_port_open(self, host, port):
         try:
@@ -98,15 +99,20 @@ class WebExtractor:
     def run(self, target):
         open_ports = [port for port in self.DEFAULT_PORTS if self.is_port_open(target, port)]
         scanned_services = []
+        colored_module = self.printer.color_text(self.module_name, "cyan")
+
         for port in open_ports:
             final_url = self.detect_scheme(target, port)
             if final_url:
+                colored_url = self.printer.color_text(final_url, "yellow")
+                print(f"[*] [Module: {colored_module}] [Scan URL: {colored_url}]")
                 extract_result = self.extract(final_url)
                 scanned_services.append({
                     "port": port,
                     "url": final_url,
                     "data": extract_result
                 })
+
         return {
             "open_ports": open_ports,
             "services": scanned_services
