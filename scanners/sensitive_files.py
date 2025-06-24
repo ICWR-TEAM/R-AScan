@@ -1,23 +1,10 @@
 import requests, os
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, SENSITIVE_FILES
 from module.other import Other
 
 class SensitiveFileScanner:
     def __init__(self):
-        self.paths = [
-            "/.env",
-            "/.git/config",
-            "/.gitignore",
-            "/.htaccess",
-            "/sftp-config.json",
-            "/ftpconfig",
-            "/config.json",
-            "/config.yml",
-            "/web.config",
-            "/composer.lock",
-            "/package-lock.json",
-            "/.DS_Store"
-        ]
+        self.paths = open(SENSITIVE_FILES, "r").read().splitlines()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
