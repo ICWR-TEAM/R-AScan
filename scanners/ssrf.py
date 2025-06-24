@@ -18,8 +18,8 @@ class SSRFScanner:
         colored_module = self.printer.color_text(self.module_name, "cyan")
         colored_url = self.printer.color_text(url, "yellow")
         color = "green" if status == "Vuln" else "red"
-        status_colored = self.printer.color_text(f"[{status}]", color)
-        print(f"[{level}] [Module: {colored_module}] {status_colored} {colored_url}")
+        status_colored = self.printer.color_text(f"{status}", color)
+        print(f"[{level}] [Module: {colored_module}] [{status_colored}] {colored_url}")
 
     def print_error(self, url, error):
         colored_module = self.printer.color_text(self.module_name, "cyan")
