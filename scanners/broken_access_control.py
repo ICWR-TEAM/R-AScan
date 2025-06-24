@@ -12,7 +12,7 @@ class BrokenAccessControlScanner:
         self.session.timeout = DEFAULT_TIMEOUT
         self.base_url = f"http://{self.target}"
         self.found_endpoints = set()
-        self.module_name = os.path.basename(__file__)
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
     def scan(self):
