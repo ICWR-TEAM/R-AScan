@@ -4,7 +4,7 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from module.other import Other
 
-class AdminPanelScanner:
+class EnumerationDirectoryScanner:
     def __init__(self, args):
         self.target = args.target
         self.max_workers = args.threads
@@ -41,7 +41,7 @@ class AdminPanelScanner:
             return {"url": url, "error": str(e)}
         return None
 
-    def scan(self):
+    def run(self):
         found = []
         tasks = []
 
@@ -67,4 +67,4 @@ class AdminPanelScanner:
         return found if found else [{"admin_panel_found": False}]
 
 def scan(args=None):
-    return AdminPanelScanner(args).scan()
+    return EnumerationDirectoryScanner(args).run()
