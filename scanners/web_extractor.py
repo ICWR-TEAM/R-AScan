@@ -6,7 +6,8 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class WebExtractor:
-    def __init__(self):
+    def __init__(self, args):
+        self.target = args.target
         self.headers = HTTP_HEADERS
         self.timeout = DEFAULT_TIMEOUT
         self.DEFAULT_PORTS = [80, 443, 8080, 8443, 8000, 3000, 3001]
@@ -97,6 +98,7 @@ class WebExtractor:
         return result
 
     def run(self, target):
+        target = self.target
         open_ports = [port for port in self.DEFAULT_PORTS if self.is_port_open(target, port)]
         scanned_services = []
         colored_module = self.printer.color_text(self.module_name, "cyan")
@@ -119,5 +121,4 @@ class WebExtractor:
         }
 
 def scan(args=None):
-    extractor = WebExtractor()
-    return extractor.run(args.target)
+    return WebExtractor(args).run()
