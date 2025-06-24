@@ -1,7 +1,8 @@
-import requests, re, json
+import requests, re, json, os
 from urllib.parse import urljoin, urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS
+from module.other import Other
 
 class Top25FastScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
@@ -29,11 +30,14 @@ class Top25FastScanner:
         self.thread = args.threads
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def scan(self):
         endpoints = open(COMMON_ENDPOINTS, "r").read().splitlines()
         tasks = []
         results = []
+        colored_module = self.printer.color_text(self.module_name, "cyan")
 
         with ThreadPoolExecutor(max_workers=self.thread) as executor:
             for category, params in self.PARAMS.items():
@@ -53,6 +57,11 @@ class Top25FastScanner:
             for future in as_completed(tasks):
                 res = future.result()
                 if res:
+                    colored_cat = self.printer.color_text(res["category"], "yellow")
+                    colored_method = self.printer.color_text(res["method"], "magenta")
+                    colored_param = self.printer.color_text(res["param"], "green")
+                    colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
+                    print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
                     results.append(res)
 
         return {"target": self.target, "findings": results}
