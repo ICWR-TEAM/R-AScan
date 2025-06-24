@@ -1,8 +1,6 @@
-import requests
-import re
-import json
-
+import requests, re, json, os
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from module.other import Other
 
 class BrokenAccessControlScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
@@ -23,7 +21,16 @@ class BrokenAccessControlScanner:
             url = f"{self.base_url}{path}"
             for method in self.METHODS:
                 status = self._request(method, url)
-                if status and status in [200, 201, 202, 203, 204, 206, 207]:
+                if status:
+                    colored_module = self.printer.color_text(self.module_name, "cyan")
+                    colored_method = self.printer.color_text(method, "magenta")
+                    colored_path = self.printer.color_text(path, "yellow")
+                    colored_status = self.printer.color_text(
+                        str(status), "green" if status in [200, 201, 202, 203, 204, 206, 207] else "red"
+                    )
+                    print(f"[+] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
+
+                if status in [200, 201, 202, 203, 204, 206, 207]:
                     bac_results.append({
                         "method": method,
                         "path": path,
