@@ -21,10 +21,19 @@ class CommandInjectionScanner:
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def print_status(self, level, status, url, extra=""):
+    def print_status(self, level, status, url, param=None, marker=None):
         colored_module = self.printer.color_text(self.module_name, "cyan")
         colored_url = self.printer.color_text(url, "yellow")
         status_colored = self.printer.color_text(f"[{status}]", "green" if status == "Vuln" else "red")
+
+        extra = ""
+        if param:
+            colored_param = self.printer.color_text(param, "magenta")
+            extra += f"[param={colored_param}] "
+        if marker:
+            colored_marker = self.printer.color_text(marker, "green")
+            extra += f"[marker={colored_marker}]"
+
         print(f"[{level}] [Module: {colored_module}] {status_colored} [{colored_url}] {extra}")
 
     def scan(self):
@@ -55,7 +64,7 @@ class CommandInjectionScanner:
         try:
             r = self.session.get(url, timeout=DEFAULT_TIMEOUT, verify=False)
             if r.status_code == 200 and marker in r.text and payload not in r.text:
-                self.print_status("+", "Vuln", url, f"param={param} marker={marker}")
+                self.print_status("+", "Vuln", url, param, marker)
                 return {
                     "parameter": param,
                     "payload": payload,
@@ -64,7 +73,7 @@ class CommandInjectionScanner:
                     "status": r.status_code
                 }
             elif self.verbose:
-                self.print_status("-", "Not Vuln", url)
+                self.print_status("-", "Not Vuln", url, param)
         except Exception as e:
             if self.verbose:
                 colored_error = self.printer.color_text(str(e), "red")
