@@ -6,7 +6,6 @@ from module.other import Other
 
 class Top25FastScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
-
     PAYLOAD = {
         "SQLi": "1' OR '1'='1",
         "LFI": "../../../../etc/passwd",
@@ -15,6 +14,7 @@ class Top25FastScanner:
         "SSRF": "http://127.0.0.1",
         "XSS": "<script>alert(1)</script>"
     }
+    PARAMS = GLOBAL_PARAMS
 
     INDICATORS = {
         "SQLi": ["mysql", "syntax", "sql", "query failed"],
@@ -33,12 +33,11 @@ class Top25FastScanner:
         self.session.headers.update(HTTP_HEADERS)
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
-        self.PARAMS = GLOBAL_PARAMS
 
     def scan(self):
         try:
             with open(COMMON_ENDPOINTS, "r") as f:
-                endpoints = [line.strip() for line in f if line.strip()]
+                endpoints = f.read().splitlines()
         except Exception as e:
             print(f"[!] Failed to load endpoints: {e}")
             return {"target": self.target, "findings": []}
@@ -67,9 +66,7 @@ class Top25FastScanner:
                     colored_method = self.printer.color_text(res["method"], "magenta")
                     colored_param = self.printer.color_text(f"[{res['param']}]", "green")
                     colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
-
-                    if self.verbose or res["status"] == 200:
-                        print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
+                    print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
                     results.append(res)
 
         if not results and self.verbose:
@@ -81,15 +78,13 @@ class Top25FastScanner:
         try:
             data = {param: value}
             if method == "GET":
-                full_url = f"{url}?{urlencode(data)}"
-                r = self.session.get(full_url, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+                r = self.session.get(f"{url}?{urlencode(data)}", timeout=DEFAULT_TIMEOUT, allow_redirects=False)
             else:
                 r = self.session.request(method, url, data=data, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
 
             if r.status_code not in [401, 403, 404, 405] and r.status_code < 500:
                 content = r.text.lower()
-                indicators = self.INDICATORS.get(category, [])
-                if any(i in content for i in indicators):
+                if any(i in content for i in self.INDICATORS.get(category, [])):
                     return {
                         "category": category,
                         "method": method,
@@ -98,9 +93,10 @@ class Top25FastScanner:
                         "payload": value,
                         "status": r.status_code
                     }
-        except:
-            return None
-
+        except Exception as e:
+            if self.verbose:
+                print(f"[!] Error scanning {url} with param {param}: {e}")
+        return None
 
 def scan(args=None):
     return Top25FastScanner(args).scan()
