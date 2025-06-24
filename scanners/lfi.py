@@ -66,7 +66,7 @@ class LFIScanner:
             if self.verbose:
                 colored_module = self.printer.color_text(self.module_name, "cyan")
                 colored_url = self.printer.color_text(url, "yellow")
-                print(f"[-] [Module: {colored_module}] [Checked: {colored_url}]")
+                print(f"[-] [Module: {colored_module}] [LFI Not Detected: {colored_url}]")
         except Exception as e:
             colored_module = self.printer.color_text(self.module_name, "cyan")
             colored_url = self.printer.color_text(url, "yellow")
