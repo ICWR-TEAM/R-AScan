@@ -21,7 +21,8 @@ class SensitiveFileScanner:
                 response = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
                 if self.verbose or (response.status_code == 200 and any(keyword in response.text.lower() for keyword in ["password", "user", "host", "env", "config"])):
                     colored_file = self.printer.color_text(path, "yellow")
-                    print(f"[*] [Module: {colored_module}] Exposed: {colored_file}")
+                    colored_status_code = self.printer.color_text(response.status_code, "green" if response.status_code == 200 else "red")
+                    print(f"[*] [Module: {colored_module}] [File: {colored_file}] [Status Code: {colored_status_code}]")
                     exposed.append({"file": path, "url": url, "status": 200})
             except Exception as e:
                 colored_error = self.printer.color_text(str(e), "red")
