@@ -1,6 +1,7 @@
 import requests
 import re
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
@@ -14,25 +15,33 @@ class EndpointDump:
 
     JS_FILE_EXTENSIONS = [".js", ".mjs"]
 
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = args.target
         self.found_endpoints = set()
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
+        self.thread = args.threads
 
-    def fetch_url(self, path):
-        protocols = ["http", "https"]
-        for proto in protocols:
-            url = f"{proto}://{self.target}{path}"
-            try:
-                r = self.session.get(url, timeout=DEFAULT_TIMEOUT, allow_redirects=True)
-                if r.status_code == 200:
-                    return r.text
-            except:
-                continue
-        return None
+    def fetch_url(self, url):
+        try:
+            r = self.session.get(url, timeout=DEFAULT_TIMEOUT, allow_redirects=True)
+            if r.status_code == 200:
+                return r.text
+        except:
+            return None
+
+    def fetch_urls(self, urls):
+        results = {}
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = {executor.submit(self.fetch_url, url): url for url in urls}
+            for future in as_completed(futures):
+                url = futures[future]
+                content = future.result()
+                if content:
+                    results[url] = content
+        return results
 
     def extract_from_json(self, content):
         import json
@@ -82,29 +91,33 @@ class EndpointDump:
                 js_files.add(f)
         return js_files
 
-    def scan_js_files(self, base_path, js_files):
+    def scan_js_files(self, js_files):
+        urls = []
         for js_file in js_files:
-            content = self.fetch_url(js_file)
-            if content:
-                self.found_endpoints.update(self.extract_from_html_js(content))
+            urls.append(f"http://{self.target}{js_file}")
+            urls.append(f"https://{self.target}{js_file}")
+        js_contents = self.fetch_urls(urls)
+        for content in js_contents.values():
+            self.found_endpoints.update(self.extract_from_html_js(content))
 
-    def scan(self):
+    def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
-        for path in self.COMMON_ENDPOINT_FILES:
-            content = self.fetch_url(path)
-            if content:
-                ep = self.extract_from_json(content)
-                if ep:
-                    self.found_endpoints.update(ep)
-                self.found_endpoints.update(self.extract_from_html_js(content))
-                js_files = self.find_js_files(ep)
-                if js_files:
-                    self.scan_js_files("/", js_files)
+        urls_to_fetch = []
+        for path in self.COMMON_ENDPOINT_FILES + ["/"]:
+            urls_to_fetch.append(f"http://{self.target}{path}")
+            urls_to_fetch.append(f"https://{self.target}{path}")
 
-        homepage = self.fetch_url("/")
-        if homepage:
-            self.found_endpoints.update(self.extract_from_html_js(homepage))
+        fetched = self.fetch_urls(urls_to_fetch)
+
+        for url, content in fetched.items():
+            ep = self.extract_from_json(content)
+            if ep:
+                self.found_endpoints.update(ep)
+            self.found_endpoints.update(self.extract_from_html_js(content))
+            js_files = self.find_js_files(ep)
+            if js_files:
+                self.scan_js_files(js_files)
 
         if self.found_endpoints:
             print(f"[*] [Module: {colored_module}] [Found {len(self.found_endpoints)} endpoints]")
@@ -114,5 +127,4 @@ class EndpointDump:
         return {"endpoints_found": list(sorted(self.found_endpoints))}
 
 def scan(args=None):
-    scanner = EndpointDump(args.target)
-    return scanner.scan()
+    return EndpointDump(args).run()
