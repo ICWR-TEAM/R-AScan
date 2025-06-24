@@ -8,7 +8,7 @@ class AdminPanelScanner:
     def __init__(self, args):
         self.target = args.target
         self.max_workers = args.threads
-        self.module_name = os.path.basename(__file__)
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
         self.paths = [
             "/admin", "/admin/", "/admin/login", "/admin_login", "/admin-area",
