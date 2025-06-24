@@ -29,6 +29,9 @@ class LFIScanner:
     def check_payload(self, url):
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
+            colored_url = self.printer.color_text(result, "yellow")
+            print(f"[*] [Module: {colored_module}] [Detected: LFI] [URL: {colored_url}]")
+
             if "root:x" in r.text:
                 return url
         except:
@@ -50,8 +53,6 @@ class LFIScanner:
             for future in as_completed(tasks):
                 result = future.result()
                 if result:
-                    colored_payload = self.printer.color_text(result, "yellow")
-                    print(f"[*] [Module: {colored_module}] [Detected: LFI] [Payload: {colored_payload}]")
                     return [{"vulnerable": True, "payload": result}]
 
         print(f"[*] [Module: {colored_module}] No LFI detected.")
