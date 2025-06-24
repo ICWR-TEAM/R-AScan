@@ -14,11 +14,13 @@ class AccessControlScanner:
     def __init__(self, args):
         self.args = args
         self.target = args.target
+        self.verbose = args.verbose
         self.max_workers = args.threads
+        self.printer = Other()
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
 
     def check_endpoint(self, protocol, endpoint):
         url = f"{protocol}://{self.target}{endpoint}"
-        module_name = os.path.splitext(os.path.basename(__file__))[0]
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
             result = {
@@ -27,17 +29,20 @@ class AccessControlScanner:
                 "content_length": len(r.content),
                 "redirect_location": r.headers.get("Location", None),
             }
-            
-            colored_module = Other().color_text(module_name, "cyan")
-            colored_url = Other().color_text(result["url"], "yellow")
-            colored_status = Other().color_text(str(result["status_code"]), "green" if result["status_code"] == 200 else "red")
-            colored_redirect = Other().color_text(str(result["redirect_location"]), "magenta")
-            
-            print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
+
+            status_ok = r.status_code in [200, 201, 202, 204]
+            if self.verbose or status_ok:
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_url = self.printer.color_text(result["url"], "yellow")
+                colored_status = self.printer.color_text(str(result["status_code"]), "green" if status_ok else "red")
+                colored_redirect = self.printer.color_text(str(result["redirect_location"]), "magenta")
+                print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
 
             return result
+
         except Exception as e:
-            print(f"[-] [Module: {module_name}] [Error: {e}]")
+            if self.verbose:
+                print(f"[-] [Module: {self.module_name}] [Error: {e}]")
             return {"url": url, "error": str(e)}
 
     def scan(self):
