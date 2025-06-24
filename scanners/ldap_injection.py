@@ -3,8 +3,8 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class LDAPInjectionScanner:
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = args.target
         self.test_payload = "*"
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
@@ -37,4 +37,4 @@ class LDAPInjectionScanner:
         return {"vulnerability": "LDAP Injection", "status": "not detected"}
 
 def scan(args=None):
-    return LDAPInjectionScanner(args.target).run()
+    return LDAPInjectionScanner(args).run()
