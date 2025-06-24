@@ -17,7 +17,7 @@ class BrokenAccessControlScanner:
         self.printer = Other()
         self.thread = args.threads
 
-    def scan(self):
+    def run(self):
         self._collect_endpoints()
         bac_results = []
         tasks = []
@@ -155,4 +155,4 @@ class BrokenAccessControlScanner:
         return js_files
 
 def scan(args=None):
-    return BrokenAccessControlScanner(args).scan()
+    return BrokenAccessControlScanner(args).run()
