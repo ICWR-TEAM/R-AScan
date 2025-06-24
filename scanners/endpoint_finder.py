@@ -22,7 +22,7 @@ class EndpointDump:
         self.session.headers.update(HTTP_HEADERS)
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
-        self.thread = args.threads
+        self.thread = args.threads if hasattr(args, "threads") else 5
 
     def fetch_url(self, url):
         try:
@@ -68,6 +68,19 @@ class EndpointDump:
         except:
             pass
         return endpoints
+
+    def extract_files_dict(self, content):
+        import json
+        files_dict = {}
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict):
+                for key in ["files", "routes", "entrypoints", "assets"]:
+                    if key in data and isinstance(data[key], dict):
+                        files_dict.update(data[key])
+        except:
+            pass
+        return files_dict
 
     def extract_from_html_js(self, content):
         endpoints = set()
@@ -115,7 +128,8 @@ class EndpointDump:
             if ep:
                 self.found_endpoints.update(ep)
             self.found_endpoints.update(self.extract_from_html_js(content))
-            js_files = self.find_js_files(ep)
+            files_dict = self.extract_files_dict(content)
+            js_files = self.find_js_files(files_dict)
             if js_files:
                 self.scan_js_files(js_files)
 
