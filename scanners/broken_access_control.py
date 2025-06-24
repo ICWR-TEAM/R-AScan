@@ -5,8 +5,8 @@ from module.other import Other
 class BrokenAccessControlScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = args.target
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
         self.session.timeout = DEFAULT_TIMEOUT
@@ -30,7 +30,9 @@ class BrokenAccessControlScanner:
                     colored_status = self.printer.color_text(
                         str(status), "green" if status in [200, 201, 202, 203, 204, 206, 207] else "red"
                     )
-                    print(f"[*] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
+
+                    if args.verbose or status in [200, 201, 202, 203, 204, 206, 207]:
+                        print(f"[*] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
 
                     if status in [200, 201, 202, 203, 204, 206, 207]:
                         bac_results.append({
@@ -133,4 +135,4 @@ class BrokenAccessControlScanner:
         return js_files
 
 def scan(args=None):
-    return BrokenAccessControlScanner(args.target).scan()
+    return BrokenAccessControlScanner(args).scan()
