@@ -19,12 +19,13 @@ class AccessControlScanner:
         url = f"{protocol}://{self.target}{endpoint}"
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
-            return {
-                "url": url,
-                "status_code": r.status_code,
-                "content_length": len(r.content),
-                "redirect_location": r.headers.get("Location", None),
-            }
+            if r.status_code == 200:
+                return {
+                    "url": url,
+                    "status_code": r.status_code,
+                    "content_length": len(r.content),
+                    "redirect_location": r.headers.get("Location", None),
+                }
         except Exception as e:
             return {"url": url, "error": str(e)}
 
