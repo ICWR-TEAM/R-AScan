@@ -1,6 +1,6 @@
 import requests
 import os
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, DIRECTORIES
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from module.other import Other
 
@@ -10,26 +10,7 @@ class EnumerationDirectoryScanner:
         self.max_workers = args.threads
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
-        self.paths = [
-            "/admin", "/admin/", "/admin/login", "/admin_login", "/admin-area",
-            "/administrator", "/administrator/", "/administrator/login",
-            "/adminpanel", "/adminpanel/", "/admincp", "/adminControlPanel",
-            "/cpanel", "/cpanel/", "/login", "/login/admin", "/admin/login.php",
-            "/admin/index.php", "/admin1", "/admin2", "/admin3",
-            "/admin/home", "/admin_console", "/admin_area", "/adminAccount",
-            "/controlpanel", "/controlpanel/login", "/manage", "/manage/login",
-            "/panel", "/panel/", "/dashboard", "/dashboard/login",
-            "/cms", "/cms/login", "/moderator", "/moderator/login",
-            "/useradmin", "/users/admin", "/backend", "/backend/login",
-            "/system", "/system/admin", "/adminsite", "/secureadmin",
-            "/wp-admin", "/wp-login.php",
-            "/joomla/administrator",
-            "/drupal/admin",
-            "/typo3/backend",
-            "/bitrix/admin",
-            "/webadmin", "/webadmin/login",
-            "/admin.php", "/admin.html", "/administrator.php"
-        ]
+        self.paths = open(DIRECTORIES, "r").read().splitlines()
 
     def check_path(self, protocol, path):
         url = f"{protocol}://{self.target}{path}"
