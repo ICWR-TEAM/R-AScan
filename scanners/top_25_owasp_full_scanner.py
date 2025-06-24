@@ -14,6 +14,7 @@ class Top25FastScanner:
         "SSRF": "http://127.0.0.1",
         "XSS": "<script>alert(1)</script>"
     }
+    PARAMS = PARAMS
 
     def __init__(self, args):
         self.target = f"http://{args.target}".rstrip("/")
