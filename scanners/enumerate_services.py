@@ -76,4 +76,4 @@ class ServiceEnumerator:
         return self.results
 
 def scan(args=None):
-    return PortServiceScanner(args).scan()
+    return ServiceEnumerator(args).scan()
