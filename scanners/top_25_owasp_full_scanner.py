@@ -27,6 +27,7 @@ class Top25FastScanner:
 
     def __init__(self, args):
         self.target = f"http://{args.target}".rstrip("/")
+        self.verbose = args.verbose
         self.thread = args.threads
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
@@ -62,7 +63,7 @@ class Top25FastScanner:
                     colored_param = self.printer.color_text(res["param"], "green")
                     colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
 
-                    if args.verbose or res["status"] == 200:
+                    if self.verbose or res["status"] == 200:
                         print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
 
                     results.append(res)
