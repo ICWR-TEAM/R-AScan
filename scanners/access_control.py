@@ -30,7 +30,7 @@ class AccessControlScanner:
             
             colored_module = Other().color_text(module_name, "cyan")
             colored_url = Other().color_text(result["url"], "yellow")
-            colored_status = Other().color_text(str(result["status_code"]), "green")
+            colored_status = Other().color_text(str(result["status_code"]), "green" if result["status_code"] == 200 else "red")
             colored_redirect = Other().color_text(str(result["redirect_location"]), "magenta")
             
             print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
