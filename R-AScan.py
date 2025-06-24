@@ -63,8 +63,8 @@ class RAScan:
                 result = module.scan(self.args)
                 if self.args.verbose:
                     print(f"[*] [Module: {module_name}]\n└─  Result: \n{json.dumps(result, indent=4)}")
-                else:
-                    print(f"[*] [Module: {module_name}]")
+                #else:
+                #    print(f"[*] [Module: {module_name}]")
                 return {module_name: result}
             else:
                 print(f"[!] [Skipping {module_name} — no 'scan(target)' function found.]")
