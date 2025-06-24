@@ -7,114 +7,115 @@
 
 # R-AScan (Rusher Automatic Scanner)
 
-R-AScan is a modular, multithreaded vulnerability scanner framework written in Python. It automatically loads and runs all scanning modules located in the `scanners/` directory.
+## Overview
 
----
+R-AScan is a modular, multithreaded vulnerability scanner framework written in Python. It dynamically loads all `.py` scanner modules in the `scanners/` directory and executes them against a target. Each module returns structured output and is saved to a JSON file for analysis.
 
 ## Features
 
-* Modular scanner structure (easy to extend)
-* Multithreaded scanning for improved speed
-* Automatic update of scanner modules from GitHub
-* JSON output for easy integration
-* Includes scanners for common web vulnerabilities:
-
-  * Local File Inclusion (LFI)
-  * Remote Code Execution (RCE)
-  * Server-Side Request Forgery (SSRF)
-  * Security headers
-  * Sensitive file exposure
-  * XSS, open redirect, admin panel finder
-  * And more
-
----
+- Modular architecture (drop-in `.py` modules)
+- Multithreaded execution using thread pool
+- Auto-update scanner modules from GitHub
+- JSON output format
+- CLI-based execution with multiple options
+- Includes scanners for:
+  - Local File Inclusion (LFI)
+  - Remote Code Execution (RCE)
+  - Cross-Site Scripting (XSS)
+  - Server-Side Request Forgery (SSRF)
+  - SQL Injection (SQLi)
+  - Open Redirect
+  - Security Headers
+  - Sensitive Files
+  - Fingerprinting
+  - Admin Panel Finder
+  - Rate Limiting
+  - SSTI
+  - LDAP Injection
+  - and others
 
 ## Requirements
 
-* Python 3.8 or newer
-* `requests` library
+- Python 3.8 or newer
+- `requests` library
 
-To install the required package:
+Install dependencies:
 
-```
-python3 -m pip install -r requirements.txt
-```
-
----
+```bash
+pip install -r requirements.txt
+````
 
 ## Usage
 
-```
-python3 main.py -x <target> -t <threads> -o <output_path> --update
+```bash
+python3 main.py -x <target> [options]
 ```
 
-Examples:
+### Examples
 
-```
+```bash
 python3 main.py -x example.com
-python3 main.py -x 192.168.1.1 -t 10
+python3 main.py -x 192.168.1.1 -t 10 -o output.json
 python3 main.py --update
 ```
 
-Arguments:
+### Arguments
 
-* `-x` or `--target` — Target domain or IP address
-* `-t` or `--threads` — Number of threads (default: 5)
-* `-o` or `--output` — Path to save JSON results (optional)
-* `--update` — Only update scanner modules from GitHub and exit
-
----
+* `-x`, `--target` — Target domain or IP address (required unless using `--update`)
+* `-t`, `--threads` — Number of threads (default: 5)
+* `-o`, `--output` — Path to save JSON result (optional)
+* `--update` — Update scanner modules from GitHub and exit
+* `--verbose` — Print detailed output from each module
 
 ## Output
 
-The scan results are saved in a JSON file named like:
+The scan result will be saved as:
 
 ```
 scan_output-<target>.json
 ```
 
-Or at a custom path if `-o` is specified.
+If the `-o` option is specified, it will be saved to the given custom path.
 
----
+Each scanner module contributes a dictionary entry in the JSON output, grouped under the `result` key.
 
-## Adding Your Own Module
+## Writing a Custom Module
 
-To create a new scan module:
+1. Create a new Python file in `scanners/`, for example `my_scan.py`
+2. Define a function `scan(args)` that returns a dictionary or list
+3. Access the target using `args.target`
 
-1. Create a Python file in the `scanners/` folder (for example: `my_scan.py`)
-2. Define a `scan(args)` function that returns a dictionary or list
-
-Example module:
+### Example
 
 ```python
 import requests
 
 def scan(args):
-    target = args.target
-    url = f"http://{target}/test"
-    response = requests.get(url, timeout=10)
-    return {
-        "url": url,
-        "status_code": response.status_code
-    }
+    url = f"http://{args.target}/test"
+    try:
+        response = requests.get(url, timeout=10)
+        return {
+            "url": url,
+            "status_code": response.status_code
+        }
+    except Exception as e:
+        return {"error": str(e)}
 ```
 
-The scanner will automatically load this module and run the `scan` function.
+The main framework will automatically discover and execute this module.
 
----
+## Updating Modules
 
-## Updating Scanners
+To update scanner modules directly from the GitHub repository:
 
-To fetch the latest scanner modules from the GitHub repository:
-
-```
+```bash
 python3 main.py --update
 ```
 
-This will download and replace `.py` files in the `scanners/` directory.
-
----
+All `.py` files in the `scanners/` directory will be downloaded and replaced.
 
 ## License
 
-This project is released under the MIT License. Developed by HarshXor (incrustwerush.org).
+This project is licensed under the MIT License.
+
+Developed by HarshXor — [https://incrustwerush.org](https://incrustwerush.org)
