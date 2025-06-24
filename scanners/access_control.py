@@ -23,19 +23,21 @@ class AccessControlScanner:
         url = f"{protocol}://{self.target}{endpoint}"
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+            status_code = r.status_code
+            redirect = r.headers.get("Location", None)
             result = {
                 "url": url,
-                "status_code": r.status_code,
+                "status_code": status_code,
                 "content_length": len(r.content),
-                "redirect_location": r.headers.get("Location", None),
+                "redirect_location": redirect,
             }
 
-            status_ok = r.status_code in [200, 201, 202, 204]
-            if self.verbose or status_ok:
+            is_vuln = status_code in [200, 201, 202, 204]
+            if self.verbose or is_vuln:
                 colored_module = self.printer.color_text(self.module_name, "cyan")
-                colored_url = self.printer.color_text(result["url"], "yellow")
-                colored_status = self.printer.color_text(str(result["status_code"]), "green" if status_ok else "red")
-                colored_redirect = self.printer.color_text(str(result["redirect_location"]), "magenta")
+                colored_url = self.printer.color_text(url, "yellow")
+                colored_status = self.printer.color_text(str(status_code), "green" if is_vuln else "red")
+                colored_redirect = self.printer.color_text(str(redirect), "magenta")
                 print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
 
             return result
