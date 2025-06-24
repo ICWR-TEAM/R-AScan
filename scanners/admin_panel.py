@@ -59,7 +59,7 @@ class AdminPanelScanner:
                     if "status" in result:
                         status_color = "green" if result["status"] == 200 else "red"
                         colored_status = self.printer.color_text(str(result["status"]), status_color)
-                        print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status: {colored_status}]")
+                        print(f"[*] [Module: {colored_module}] [URL: {colored_url}] [Status: {colored_status}]")
                     elif "error" in result:
                         colored_error = self.printer.color_text(result["error"], "red")
                         print(f"[!] [Module: {colored_module}] [URL: {colored_url}] [Error: {colored_error}]")
