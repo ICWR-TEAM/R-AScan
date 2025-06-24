@@ -6,7 +6,6 @@ from module.other import Other
 
 class Top25FastScanner:
     METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
-
     PAYLOAD = {
         "SQLi": "1' OR '1'='1",
         "LFI": "../../../../etc/passwd",
