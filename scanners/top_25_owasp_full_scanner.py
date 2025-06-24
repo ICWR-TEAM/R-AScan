@@ -83,7 +83,6 @@ class Top25FastScanner:
                         "payload": value,
                         "status": r.status_code
                     }
-
         except:
             return None
 
