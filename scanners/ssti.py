@@ -40,8 +40,8 @@ class SSTIScanner:
     def print_status(self, level, status, url, extra=""):
         colored_module = self.printer.color_text(self.module_name, "cyan")
         colored_url = self.printer.color_text(url, "yellow")
-        status_colored = self.printer.color_text(f"[{status}]", "green" if status == "Vuln" else "red")
-        print(f"[{level}] [Module: {colored_module}] {status_colored} {colored_url} {extra}")
+        status_colored = self.printer.color_text(f"{status}", "green" if status == "Vuln" else "red")
+        print(f"[{level}] [Module: {colored_module}] [{status_colored}] {colored_url} {extra}")
 
     def scan(self):
         results = []
