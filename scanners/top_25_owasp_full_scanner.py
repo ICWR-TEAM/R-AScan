@@ -49,7 +49,7 @@ class Top25FastScanner:
                     colored_cat = self.printer.color_text(res["category"], "yellow")
                     colored_method = self.printer.color_text(res["method"], "magenta")
                     colored_param = self.printer.color_text(f"[{res['param']}]", "green")
-                    colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] == 200 else "red")
+                    colored_status = self.printer.color_text(str(res["status"]), "green" if res["status"] in [200, 201] else "red")
                     print(f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]")
                     results.append(res)
 
@@ -65,7 +65,10 @@ class Top25FastScanner:
                 r = self.session.request(method, url, data=data, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
                 full_url = url
 
-            if r.status_code in [200, 201] and not any(bad in r.text.lower() for bad in ["not found", "error", "forbidden", "denied"]):
+            status = r.status_code
+            body = r.text.lower()
+
+            if status in [200, 201] and not any(bad in body for bad in ["not found", "error", "forbidden", "denied"]):
                 indicators = {
                     "SQLi": ["mysql", "syntax", "sql", "query failed"],
                     "LFI": ["root:x:0:0", "/bin/bash"],
@@ -75,24 +78,26 @@ class Top25FastScanner:
                     "XSS": ["<script>alert(1)</script>"]
                 }
                 signs = indicators.get(category, [])
-                if any(s in r.text.lower() for s in signs):
+                if any(s in body for s in signs):
                     return {
                         "category": category,
                         "method": method,
                         "endpoint": endpoint,
                         "param": param,
                         "payload": value,
-                        "status": r.status_code
+                        "status": status
                     }
-                else:
-                    return {
-                        "category": category,
-                        "method": method,
-                        "endpoint": endpoint,
-                        "param": param,
-                        "payload": value,
-                        "status": r.status_code
-                    }
+
+            if self.verbose:
+                return {
+                    "category": category,
+                    "method": method,
+                    "endpoint": endpoint,
+                    "param": param,
+                    "payload": value,
+                    "status": "Not Vuln"
+                }
+
         except:
             return None
 
