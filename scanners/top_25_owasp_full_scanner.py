@@ -16,7 +16,6 @@ class Top25FastScanner:
     }
 
     def __init__(self, args):
-        self.PARAMS = GLOBAL_PARAMS
         self.target = f"http://{args.target}".rstrip("/")
         self.verbose = args.verbose
         self.thread = args.threads
@@ -24,6 +23,7 @@ class Top25FastScanner:
         self.session.headers.update(HTTP_HEADERS)
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
+        self.PARAMS = GLOBAL_PARAMS
 
     def scan(self):
         endpoints = open(COMMON_ENDPOINTS, "r").read().splitlines()
@@ -32,9 +32,8 @@ class Top25FastScanner:
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
         with ThreadPoolExecutor(max_workers=self.thread) as executor:
-            for category, params in self.PARAMS.items():
-                if category not in self.PAYLOAD:
-                    continue
+            for category in self.PAYLOAD.keys():
+                params = self.PARAMS.get(category, [])
                 payload = self.PAYLOAD[category]
                 for param in params:
                     for endpoint in endpoints:
@@ -77,6 +76,15 @@ class Top25FastScanner:
                 }
                 signs = indicators.get(category, [])
                 if any(s in r.text.lower() for s in signs):
+                    return {
+                        "category": category,
+                        "method": method,
+                        "endpoint": endpoint,
+                        "param": param,
+                        "payload": value,
+                        "status": r.status_code
+                    }
+                else:
                     return {
                         "category": category,
                         "method": method,
