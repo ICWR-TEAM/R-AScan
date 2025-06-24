@@ -1,13 +1,16 @@
-import requests
+import requests, os
 from urllib.parse import urlencode
 from bs4 import BeautifulSoup
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from module.other import Other
 
 class XSSScanner:
     def __init__(self):
         self.payload = "<script>alert('xss')</script>"
         self.headers = HTTP_HEADERS
         self.timeout = DEFAULT_TIMEOUT
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.printer = Other()
 
     def scan(self, target):
         base = target if target.startswith("http") else f"http://{target}"
@@ -32,6 +35,9 @@ class XSSScanner:
             if self.payload in resp.text:
                 result["reflected"]["vulnerable"] = True
                 result["reflected"]["url"] = resp.url
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_url = self.printer.color_text(resp.url, "yellow")
+                print(f"[*] [Module: {colored_module}] [Reflected XSS Detected] [URL: {colored_url}]")
         except:
             pass
         return result
@@ -48,6 +54,9 @@ class XSSScanner:
                 if self.payload in get_resp.text:
                     result["stored"]["vulnerable"] = True
                     result["stored"]["url"] = post_url
+                    colored_module = self.printer.color_text(self.module_name, "cyan")
+                    colored_url = self.printer.color_text(post_url, "yellow")
+                    print(f"[*] [Module: {colored_module}] [Stored XSS Detected] [URL: {colored_url}]")
         except:
             pass
         return result
@@ -68,6 +77,8 @@ class XSSScanner:
             if dom_scripts:
                 result["dom"]["vulnerable"] = True
                 result["dom"]["scripts"] = dom_scripts
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                print(f"[*] [Module: {colored_module}] [DOM-Based XSS Detected] [Scripts Found: {len(dom_scripts)}]")
         except:
             pass
         return result
