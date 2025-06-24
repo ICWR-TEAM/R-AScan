@@ -34,7 +34,7 @@ class EndpointDump:
 
     def fetch_urls(self, urls):
         results = {}
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=self.thread) as executor:
             futures = {executor.submit(self.fetch_url, url): url for url in urls}
             for future in as_completed(futures):
                 url = futures[future]
