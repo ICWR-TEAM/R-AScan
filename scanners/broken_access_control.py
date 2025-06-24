@@ -12,6 +12,8 @@ class BrokenAccessControlScanner:
         self.session.timeout = DEFAULT_TIMEOUT
         self.base_url = f"http://{self.target}"
         self.found_endpoints = set()
+        self.module_name = os.path.basename(__file__)
+        self.printer = Other()
 
     def scan(self):
         self._collect_endpoints()
@@ -22,6 +24,7 @@ class BrokenAccessControlScanner:
             for method in self.METHODS:
                 status = self._request(method, url)
                 if status:
+                    # Output berwarna
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_method = self.printer.color_text(method, "magenta")
                     colored_path = self.printer.color_text(path, "yellow")
@@ -30,12 +33,12 @@ class BrokenAccessControlScanner:
                     )
                     print(f"[+] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
 
-                if status in [200, 201, 202, 203, 204, 206, 207]:
-                    bac_results.append({
-                        "method": method,
-                        "path": path,
-                        "status": status
-                    })
+                    if status in [200, 201, 202, 203, 204, 206, 207]:
+                        bac_results.append({
+                            "method": method,
+                            "path": path,
+                            "status": status
+                        })
 
         return {
             "target": self.target,
