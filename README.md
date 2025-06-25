@@ -50,6 +50,10 @@ pip install -r requirements.txt
 
 ## Usage
 
+```bash
+python3 main.py -x <target> [options]
+```
+
 ```
 $$$$$$$\           $$$$$$\   $$$$$$\                               
 $$  __$$\         $$  __$$\ $$  __$$\                              
@@ -75,10 +79,6 @@ options:
   -o, --output OUTPUT   Custom output file path (optional)
   --update              Only update scanner modules without scanning
   --verbose             Verbose detail log
-```
-
-```bash
-python3 main.py -x <target> [options]
 ```
 
 ### Examples
