@@ -49,13 +49,14 @@ class HTTPSmugglingScanner:
         status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
         valid = self.strict_validation(response, status_line)
         proto = "HTTPS" if use_ssl else "HTTP"
-        prefix = "[+]" if valid else "[*]"
+        status_code = status_line.split(" ")[1] if "HTTP" in status_line and len(status_line.split(" ")) >= 2 else ""
 
-        if self.verbose or valid:
+        if self.verbose or valid or status_code.startswith("2"):
             colored_module = self.printer.color_text(self.module_name, "cyan")
-            colored_status = self.printer.color_text(status_line, "red" if valid else "green")
+            colored_status = self.printer.color_text("VULNER" if valid else status_line, "red" if valid else "green")
             colored_name = self.printer.color_text(name, "yellow")
             colored_path = self.printer.color_text(path, "magenta")
+            prefix = "[+]" if valid else "[*]"
             print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
 
         return {
@@ -77,7 +78,7 @@ class HTTPSmugglingScanner:
                         tasks.append(executor.submit(self.scan_payload, payload, 443, True, path))
             for future in as_completed(tasks):
                 result = future.result()
-                if self.verbose or result["anomaly"]:
+                if self.verbose or result["anomaly"] or result["status_line"].split(" ")[1].startswith("2"):
                     results.append(result)
         return {"http_smuggling_results": results}
 
