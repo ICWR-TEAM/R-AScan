@@ -53,7 +53,7 @@ class HTTPSmugglingScanner:
 
         if self.verbose or valid or status_code.startswith("2"):
             colored_module = self.printer.color_text(self.module_name, "cyan")
-            colored_status = self.printer.color_text("VULNER" if valid else status_line, "red" if valid else "green")
+            colored_status = self.printer.color_text("Vuln" if valid else status_line, "red" if valid else "green")
             colored_name = self.printer.color_text(name, "yellow")
             colored_path = self.printer.color_text(path, "magenta")
             prefix = "[+]" if valid else "[*]"
