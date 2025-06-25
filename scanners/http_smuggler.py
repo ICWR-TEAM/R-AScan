@@ -1,4 +1,4 @@
-import socket, ssl, os
+import socket, ssl, os, json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import DEFAULT_TIMEOUT, HTTP_SMUGGLING_PAYLOAD
 from module.other import Other
@@ -9,7 +9,7 @@ class HTTPSmugglingScanner:
         self.target = args.target
         self.verbose = args.verbose
         self.threads = args.threads
-        self.payloads = open(HTTP_SMUGGLING_PAYLOAD).read().split("<!-- splitter -->")
+        self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
         self.printer = Other()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
 
