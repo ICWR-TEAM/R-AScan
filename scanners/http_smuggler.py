@@ -7,7 +7,7 @@ class HTTPSmugglingScanner:
     def __init__(self, args):
         self.args = args
         self.target = args.target
-        self.verbose = args.verbose
+        self.verbose = self.args.verbose
         self.threads = self.args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
         self.paths = [line.strip() for line in open(DIRECTORIES) if line.strip()]
@@ -49,12 +49,11 @@ class HTTPSmugglingScanner:
         status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
         valid = self.strict_validation(response, status_line)
         proto = "HTTPS" if use_ssl else "HTTP"
-        status_code = status_line.split(" ")[1] if "HTTP" in status_line and len(status_line.split(" ")) >= 2 else ""
+        status = "Vuln" if valid else "Not Vuln"
 
-        if self.verbose or valid or status_code.startswith("2"):
+        if self.verbose or valid:
             colored_module = self.printer.color_text(self.module_name, "cyan")
-            status_label = "Vuln" if valid else "Not Vuln"
-            colored_status = self.printer.color_text(status_label, "green" if valid else "red")
+            colored_status = self.printer.color_text(status, "green" if valid else "red")
             colored_name = self.printer.color_text(name, "yellow")
             colored_path = self.printer.color_text(path, "magenta")
             prefix = "[+]" if valid else "[*]"
@@ -79,8 +78,7 @@ class HTTPSmugglingScanner:
                         tasks.append(executor.submit(self.scan_payload, payload, 443, True, path))
             for future in as_completed(tasks):
                 result = future.result()
-                status_code = result["status_line"].split(" ")[1] if "HTTP" in result["status_line"] and len(result["status_line"].split(" ")) >= 2 else ""
-                if self.verbose or result["anomaly"] or status_code.startswith("2"):
+                if self.verbose or result["anomaly"]:
                     results.append(result)
         return {"http_smuggling_results": results}
 
