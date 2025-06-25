@@ -7,7 +7,7 @@ class HTTPSmugglingScanner:
     def __init__(self, args):
         self.args = args
         self.target = args.target
-        self.verbose = self.args.verbose
+        self.verbose = args.verbose
         self.threads = self.args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
         self.paths = [line.strip() for line in open(DIRECTORIES) if line.strip()]
@@ -52,8 +52,9 @@ class HTTPSmugglingScanner:
                 header_ended = True
                 continue
             if not header_ended:
-                key, value = line.split(":", 1)
-                headers.append(f"-H \"{key.strip()}: {value.strip()}\"")
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    headers.append(f"-H \"{key.strip()}: {value.strip()}\"")
             else:
                 body_lines.append(line)
 
@@ -61,8 +62,7 @@ class HTTPSmugglingScanner:
         port_part = f":{port}" if (use_ssl and port != 443) or (not use_ssl and port != 80) else ""
         url = f"{proto}://{self.target}{port_part}{path}"
         body = "\\r\\n".join(body_lines)
-        curl = f"curl -X {method} {url} {' '.join(headers)} --data-binary $'{body}'"
-        return curl
+        return f"curl -X {method} {url} {' '.join(headers)} --data-binary $'{body}'"
 
     def scan_payload(self, payload_obj, port, use_ssl, path):
         name = payload_obj.get("name", "Unnamed")
@@ -81,6 +81,10 @@ class HTTPSmugglingScanner:
             colored_path = self.printer.color_text(path, "magenta")
             prefix = "[+]" if valid else "[*]"
             print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
+
+            if valid:
+                curl_command = self.build_curl_command(raw_built, use_ssl, port)
+                print(self.printer.color_text(curl_command, "blue"))
 
         result = {
             "protocol": proto,
