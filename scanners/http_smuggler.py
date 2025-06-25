@@ -7,7 +7,7 @@ class HTTPSmugglingScanner:
     def __init__(self, args):
         self.args = args
         self.target = args.target
-        self.verbose = args.verbose
+        self.verbose = self.args.verbose
         self.threads = self.args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
         self.paths = [line.strip() for line in open(DIRECTORIES) if line.strip()]
@@ -57,7 +57,6 @@ class HTTPSmugglingScanner:
                     headers.append(f"-H \"{key.strip()}: {value.strip()}\"")
             else:
                 body_lines.append(line)
-
         proto = "https" if use_ssl else "http"
         port_part = f":{port}" if (use_ssl and port != 443) or (not use_ssl and port != 80) else ""
         url = f"{proto}://{self.target}{port_part}{path}"
@@ -73,18 +72,17 @@ class HTTPSmugglingScanner:
         valid = self.strict_validation(response, status_line)
         proto = "HTTPS" if use_ssl else "HTTP"
         status = "Vuln" if valid else "Not Vuln"
+        prefix = "[+]" if valid else "[*]"
 
         if self.verbose or valid:
             colored_module = self.printer.color_text(self.module_name, "cyan")
             colored_status = self.printer.color_text(status, "green" if valid else "red")
             colored_name = self.printer.color_text(name, "yellow")
             colored_path = self.printer.color_text(path, "magenta")
-            prefix = "[+]" if valid else "[*]"
             print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
-
             if valid:
                 curl_command = self.build_curl_command(raw_built, use_ssl, port)
-                print(self.printer.color_text(curl_command, "blue"))
+                print("\t" + self.printer.color_text(f"[*] [Curl Command: {curl_command}]", "blue"))
 
         result = {
             "protocol": proto,
