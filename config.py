@@ -8,6 +8,7 @@ DEFAULT_TIMEOUT = 5
 COMMON_ENDPOINTS = "resources/common_endpoints.txt"
 DIRECTORIES = "resources/directories.txt"
 SENSITIVE_FILES = "resources/sensitive_files.txt"
+HTTP_SMUGGLER_PAYLOAD = "resources/http_smuggling_payloads.txt"
 PARAMS = {
     "SQLi": ["id", "page", "dir", "search", "category", "file", "class", "url", "news", "item", "menu", "lang", "name", "ref", "title", "view", "topic", "thread", "type", "date", "form", "join", "main", "nav", "region"],
     "LFI": ["cat", "dir", "action", "board", "date", "detail", "file", "download", "path", "folder", "prefix", "include", "page", "inc", "locate", "show", "doc", "site", "type", "view", "content", "document", "layout", "mod", "conf"],
