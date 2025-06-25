@@ -30,7 +30,9 @@ class HTTPSmugglingScanner:
         results = []
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
-        def scan_payload(payload, port, use_ssl):
+        def scan_payload(payload_obj, port, use_ssl):
+            name = payload_obj.get("name", "Unnamed")
+            payload = payload_obj.get("raw", "")
             built = payload.format(host=self.target)
             response = self.send_raw(built, port, use_ssl)
             status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
@@ -41,11 +43,12 @@ class HTTPSmugglingScanner:
 
             if self.verbose or is_anomaly:
                 colored_status = self.printer.color_text(status_line, "red" if is_anomaly else "green")
-                print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Payload: {payload[:10]}...] [Status: {colored_status}]")
+                colored_name = self.printer.color_text(name, "yellow")
+                print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Status: {colored_status}]")
 
             return {
                 "protocol": proto,
-                "payload": payload[:30] + "...",
+                "payload_name": name,
                 "status_line": status_line,
                 "anomaly": is_anomaly
             }
@@ -53,7 +56,7 @@ class HTTPSmugglingScanner:
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             tasks = []
             for payload in self.payloads:
-                if payload.strip():
+                if payload.get("raw", "").strip():
                     tasks.append(executor.submit(scan_payload, payload, 80, False))
                     tasks.append(executor.submit(scan_payload, payload, 443, True))
             for future in as_completed(tasks):
