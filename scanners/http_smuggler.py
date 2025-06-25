@@ -9,7 +9,7 @@ class HTTPSmugglingScanner:
         self.target = args.target
         self.verbose = args.verbose
         self.threads = args.threads
-        self.payloads = open(HTTP_SMUGGLING_PAYLOAD).read().split("\n\n")
+        self.payloads = open(HTTP_SMUGGLING_PAYLOAD).read().split("<!-- Splitter -->")
         self.printer = Other()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
 
