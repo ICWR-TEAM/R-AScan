@@ -41,6 +41,29 @@ class HTTPSmugglingScanner:
             return True
         return False
 
+    def build_curl_command(self, raw_data, use_ssl, port):
+        lines = raw_data.strip().split("\r\n")
+        method, path, _ = lines[0].split()
+        headers = []
+        body_lines = []
+        header_ended = False
+        for line in lines[1:]:
+            if line == "":
+                header_ended = True
+                continue
+            if not header_ended:
+                key, value = line.split(":", 1)
+                headers.append(f"-H \"{key.strip()}: {value.strip()}\"")
+            else:
+                body_lines.append(line)
+
+        proto = "https" if use_ssl else "http"
+        port_part = f":{port}" if (use_ssl and port != 443) or (not use_ssl and port != 80) else ""
+        url = f"{proto}://{self.target}{port_part}{path}"
+        body = "\\r\\n".join(body_lines)
+        curl = f"curl -X {method} {url} {' '.join(headers)} --data-binary $'{body}'"
+        return curl
+
     def scan_payload(self, payload_obj, port, use_ssl, path):
         name = payload_obj.get("name", "Unnamed")
         raw_template = payload_obj.get("raw", "")
@@ -59,13 +82,18 @@ class HTTPSmugglingScanner:
             prefix = "[+]" if valid else "[*]"
             print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
 
-        return {
+        result = {
             "protocol": proto,
             "payload_name": name,
             "path": path,
             "status_line": status_line,
             "anomaly": valid
         }
+
+        if valid:
+            result["curl"] = self.build_curl_command(raw_built, use_ssl, port)
+
+        return result
 
     def run(self):
         results = []
