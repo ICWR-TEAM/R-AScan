@@ -21,7 +21,7 @@ class HTTPSmugglingScanner:
                 context = ssl.create_default_context()
                 sock = context.wrap_socket(sock, server_hostname=self.target)
             sock.sendall(raw_data.encode())
-            response = sock.recv(200).decode(errors="ignore")
+            response = sock.recv(8192).decode(errors="ignore")
             sock.close()
             return response
         except Exception as e:
