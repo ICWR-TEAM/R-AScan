@@ -21,7 +21,7 @@ class HTTPSmugglingScanner:
                 context = ssl.create_default_context()
                 sock = context.wrap_socket(sock, server_hostname=self.target)
             sock.sendall(raw_data.encode())
-            response = sock.recv(100).decode(errors="ignore")
+            response = sock.recv(8192).decode(errors="ignore")
             sock.close()
             return response
         except Exception as e:
@@ -63,26 +63,6 @@ class HTTPSmugglingScanner:
         body = "\\r\\n".join(body_lines)
         return f"curl -X {method} {url} {' '.join(headers)} --data-binary $'{body}'"
 
-    def print_status(self, result):
-        prefix = "[+]" if result["anomaly"] else "[*]"
-        proto = result["protocol"]
-        status = "Vuln" if result["anomaly"] else "Not Vuln"
-
-        colored_module = self.printer.color_text(self.module_name, "cyan")
-        colored_status = self.printer.color_text(status, "green" if result["anomaly"] else "red")
-        colored_name = self.printer.color_text(result["payload_name"], "yellow")
-        colored_path = self.printer.color_text(result["path"], "magenta")
-
-        output_lines = [
-            f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]"
-        ]
-
-        if result["anomaly"] and "curl" in result:
-            colored_curl = self.printer.color_text(result["curl"], "cyan")
-            output_lines.append(f"\t[*] [Curl Command: {colored_curl}]")
-
-        print("\n".join(output_lines))
-
     def scan_payload(self, payload_obj, port, use_ssl, path):
         name = payload_obj.get("name", "Unnamed")
         raw_template = payload_obj.get("raw", "")
@@ -91,6 +71,19 @@ class HTTPSmugglingScanner:
         status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
         valid = self.strict_validation(response, status_line)
         proto = "HTTPS" if use_ssl else "HTTP"
+        status = "Vuln" if valid else "Not Vuln"
+        prefix = "[+]" if valid else "[*]"
+
+        if self.verbose or valid:
+            colored_module = self.printer.color_text(self.module_name, "cyan")
+            colored_status = self.printer.color_text(status, "green" if valid else "red")
+            colored_name = self.printer.color_text(name, "yellow")
+            colored_path = self.printer.color_text(path, "magenta")
+            print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
+            if valid:
+                curl_cmd = self.build_curl_command(raw_built, use_ssl, port)
+                colored_curl = self.printer.color_text(curl_cmd, "cyan")
+                print(f"\t[*] [Curl Command: {colored_curl}]")
 
         result = {
             "protocol": proto,
@@ -102,9 +95,6 @@ class HTTPSmugglingScanner:
 
         if valid:
             result["curl"] = self.build_curl_command(raw_built, use_ssl, port)
-
-        if self.verbose or valid:
-            self.print_status(result)
 
         return result
 
