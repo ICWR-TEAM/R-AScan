@@ -50,6 +50,33 @@ pip install -r requirements.txt
 
 ## Usage
 
+```
+$$$$$$$\           $$$$$$\   $$$$$$\                               
+$$  __$$\         $$  __$$\ $$  __$$\                              
+$$ |  $$ |        $$ /  $$ |$$ /  \__| $$$$$$$\ $$$$$$\  $$$$$$$\  
+$$$$$$$  |$$$$$$\ $$$$$$$$ |\$$$$$$\  $$  _____|\____$$\ $$  __$$\ 
+$$  __$$< \______|$$  __$$ | \____$$\ $$ /      $$$$$$$ |$$ |  $$ |
+$$ |  $$ |        $$ |  $$ |$$\   $$ |$$ |     $$  __$$ |$$ |  $$ |
+$$ |  $$ |        $$ |  $$ |\$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |
+\__|  \__|        \__|  \__| \______/  \_______|\_______|\__|  \__|
+===================================================================
+[+] R-AScan (Rusher Automatic Scan) | HarshXor - incrustwerush.org
+===================================================================
+
+[-] [A target must be specified unless the --update option is used]
+
+usage: R-AScan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [--update] [--verbose]
+
+options:
+  -h, --help            show this help message and exit
+  -x, --target TARGET   Target host (domain or IP)
+  -t, --threads THREADS
+                        Number of threads to use (default: 5)
+  -o, --output OUTPUT   Custom output file path (optional)
+  --update              Only update scanner modules without scanning
+  --verbose             Verbose detail log
+```
+
 ```bash
 python3 main.py -x <target> [options]
 ```
