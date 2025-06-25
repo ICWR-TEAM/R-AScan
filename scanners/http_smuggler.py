@@ -1,6 +1,6 @@
 import socket, ssl, os, json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import DEFAULT_TIMEOUT, HTTP_SMUGGLING_PAYLOAD
+from config import DEFAULT_TIMEOUT, HTTP_SMUGGLING_PAYLOAD, DIRECTORIES
 from module.other import Other
 
 class HTTPSmugglingScanner:
@@ -10,6 +10,7 @@ class HTTPSmugglingScanner:
         self.verbose = args.verbose
         self.threads = args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
+        self.paths = [line.strip() for line in open(DIRECTORIES) if line.strip()]
         self.printer = Other()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -26,15 +27,15 @@ class HTTPSmugglingScanner:
         except Exception as e:
             return f"ERROR: {e}"
 
-    def scan(self):
+    def run(self):
         results = []
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
-        def scan_payload(payload_obj, port, use_ssl):
+        def scan_payload(payload_obj, port, use_ssl, path):
             name = payload_obj.get("name", "Unnamed")
-            payload = payload_obj.get("raw", "")
-            built = payload.format(host=self.target)
-            response = self.send_raw(built, port, use_ssl)
+            raw_template = payload_obj.get("raw", "")
+            raw_built = raw_template.replace("{host}", self.target).replace("{path}", path)
+            response = self.send_raw(raw_built, port, use_ssl)
             status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
             suspicious = any(x in response.lower() for x in ["chunk", "unexpected", "error", "malformed", "smuggl"])
             is_anomaly = suspicious or "HTTP/1.1 4" in status_line or "HTTP/1.1 5" in status_line
@@ -44,25 +45,28 @@ class HTTPSmugglingScanner:
             if self.verbose or is_anomaly:
                 colored_status = self.printer.color_text(status_line, "red" if is_anomaly else "green")
                 colored_name = self.printer.color_text(name, "yellow")
-                print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Status: {colored_status}]")
+                colored_path = self.printer.color_text(path, "magenta")
+                print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
 
             return {
                 "protocol": proto,
                 "payload_name": name,
+                "path": path,
                 "status_line": status_line,
                 "anomaly": is_anomaly
             }
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             tasks = []
-            for payload in self.payloads:
-                if payload.get("raw", "").strip():
-                    tasks.append(executor.submit(scan_payload, payload, 80, False))
-                    tasks.append(executor.submit(scan_payload, payload, 443, True))
+            for path in self.paths:
+                for payload in self.payloads:
+                    if payload.get("raw", "").strip():
+                        tasks.append(executor.submit(scan_payload, payload, 80, False, path))
+                        tasks.append(executor.submit(scan_payload, payload, 443, True, path))
             for future in as_completed(tasks):
                 results.append(future.result())
 
         return {"http_smuggling_results": results}
 
 def scan(args=None):
-    return HTTPSmugglingScanner(args).scan()
+    return HTTPSmugglingScanner(args).run()
