@@ -6,7 +6,7 @@ Transfer-Encoding: chunked
 0
 
 G
-<!-- Splitter -->
+<!-- splitter -->
 POST / HTTP/1.1
 Host: {host}
 Content-Length: 4
@@ -16,7 +16,7 @@ Transfer-Encoding: chunked
 GPOST
 0
 
-<!-- Splitter -->
+<!-- splitter -->
 POST / HTTP/1.1
 Host: {host}
 Transfer-Encoding: chunked
@@ -24,7 +24,7 @@ Content-Length: 6
 
 0
 
-<!-- Splitter -->
+<!-- splitter -->
 POST / HTTP/1.1
 Host: {host}
 Transfer-Encoding: chunked
@@ -33,7 +33,7 @@ Content-Length: 0
 0
 SMUGGLED
 
-<!-- Splitter -->
+<!-- splitter -->
 POST / HTTP/1.1
 Host: {host}
 Transfer-Encoding: chunked
@@ -42,7 +42,7 @@ a
 SMUGGLED
 0
 
-<!-- Splitter -->
+<!-- splitter -->
 POST / HTTP/1.1
 Host: {host}
 Transfer-Encoding: chunked
