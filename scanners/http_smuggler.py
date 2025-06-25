@@ -8,7 +8,7 @@ class HTTPSmugglingScanner:
         self.args = args
         self.target = args.target
         self.verbose = args.verbose
-        self.threads = args.threads
+        self.threads = self.args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
         self.paths = [line.strip() for line in open(DIRECTORIES) if line.strip()]
         self.printer = Other()
@@ -27,48 +27,58 @@ class HTTPSmugglingScanner:
         except Exception as e:
             return f"ERROR: {e}"
 
-    def build_tasks(self):
-        tasks = []
-        for path in self.paths:
-            for payload in self.payloads:
-                if payload.get("raw", "").strip():
-                    tasks.append((payload, 80, False, path))
-                    tasks.append((payload, 443, True, path))
-        return tasks
+    def strict_validation(self, response, status_line):
+        if not response or response.startswith("ERROR"):
+            return False
+        if response.lower().count("http/1.1") >= 2:
+            return True
+        lines = response.splitlines()
+        for i, line in enumerate(lines):
+            if line.startswith("HTTP/1.1 200") and i > 0:
+                return True
+        suspicious_keywords = ["flag", "/admin", "/dashboard", "confidential", "secret"]
+        if any(key in response.lower() for key in suspicious_keywords):
+            return True
+        return False
 
-    def process_payload(self, payload_obj, port, use_ssl, path):
+    def scan_payload(self, payload_obj, port, use_ssl, path):
         name = payload_obj.get("name", "Unnamed")
         raw_template = payload_obj.get("raw", "")
         raw_built = raw_template.replace("{host}", self.target).replace("{path}", path)
         response = self.send_raw(raw_built, port, use_ssl)
         status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
-        suspicious = any(x in response.lower() for x in ["chunk", "unexpected", "error", "malformed", "smuggl"])
-        is_anomaly = suspicious or "HTTP/1.1 4" in status_line or "HTTP/1.1 5" in status_line
+        valid = self.strict_validation(response, status_line)
         proto = "HTTPS" if use_ssl else "HTTP"
-        prefix = "+" if is_anomaly else "-"
+        prefix = "[+]" if valid else "[*]"
 
-        if self.verbose or is_anomaly:
+        if self.verbose or valid:
             colored_module = self.printer.color_text(self.module_name, "cyan")
-            colored_status = self.printer.color_text(status_line, "red" if is_anomaly else "green")
+            colored_status = self.printer.color_text(status_line, "red" if valid else "green")
             colored_name = self.printer.color_text(name, "yellow")
             colored_path = self.printer.color_text(path, "magenta")
-            print(f"[{{{prefix}}}] [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
+            print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
 
         return {
             "protocol": proto,
             "payload_name": name,
             "path": path,
             "status_line": status_line,
-            "anomaly": is_anomaly
+            "anomaly": valid
         }
 
     def run(self):
         results = []
-        tasks = self.build_tasks()
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
-            futures = [executor.submit(self.process_payload, *task) for task in tasks]
-            for future in as_completed(futures):
-                results.append(future.result())
+            tasks = []
+            for path in self.paths:
+                for payload in self.payloads:
+                    if payload.get("raw", "").strip():
+                        tasks.append(executor.submit(self.scan_payload, payload, 80, False, path))
+                        tasks.append(executor.submit(self.scan_payload, payload, 443, True, path))
+            for future in as_completed(tasks):
+                result = future.result()
+                if self.verbose or result["anomaly"]:
+                    results.append(result)
         return {"http_smuggling_results": results}
 
 def scan(args=None):
