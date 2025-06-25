@@ -81,9 +81,9 @@ class HTTPSmugglingScanner:
             colored_path = self.printer.color_text(path, "magenta")
             print(f"{prefix} [Module: {colored_module}] [Proto: {proto}] [Name: {colored_name}] [Path: {colored_path}] [Status: {colored_status}]")
             if valid:
-                curl_command = self.build_curl_command(raw_built, use_ssl, port)
-                curl_line = "[*] [Curl Command: " + curl_command + "]"
-                print("\t" + self.printer.color_text(curl_line, "cyan"))
+                curl_cmd = self.build_curl_command(raw_built, use_ssl, port)
+                colored_curl = self.printer.color_text(curl_cmd, "cyan")
+                print(f"\t[*] [Curl Command: {colored_curl}]")
 
         result = {
             "protocol": proto,
