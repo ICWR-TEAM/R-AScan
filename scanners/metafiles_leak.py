@@ -1,5 +1,4 @@
-import requests
-import os
+import requests, os, random
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
@@ -10,6 +9,24 @@ class MetafilesLeak:
         self.target = target
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
+        self.baseline_body = self.get_baseline_body()
+
+    def get_baseline_body(self):
+        rand_path = f"/__nonexistent_{random.randint(100000, 999999)}.txt"
+        url = f"http://{self.target}{rand_path}"
+        try:
+            r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
+            return r.text.strip()
+        except:
+            return ""
+
+    def is_similar_to_baseline(self, content):
+        if not self.baseline_body or not content:
+            return False
+        content = content.strip()
+        if abs(len(content) - len(self.baseline_body)) < 30:
+            return self.baseline_body[:50].lower() == content[:50].lower()
+        return False
 
     def scan(self):
         found = {}
@@ -19,8 +36,9 @@ class MetafilesLeak:
             try:
                 url = f"http://{self.target}{path}"
                 r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
-                if r.status_code == 200 and r.text.strip():
-                    content_preview = r.text.strip()[:200]
+                content = r.text.strip()
+                if r.status_code == 200 and content and not self.is_similar_to_baseline(content):
+                    content_preview = content[:200]
                     colored_path = self.printer.color_text(path, "yellow")
                     print(f"[*] [Module: {colored_module}] [Found: {colored_path}]")
                     found[path] = content_preview
