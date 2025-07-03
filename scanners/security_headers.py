@@ -3,7 +3,9 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class SecurityHeaderScanner:
-    def __init__(self):
+    def __init__(self, args):
+        self.target = args.target
+        self.verbose = args.verbose
         self.required_headers = [
             "Content-Security-Policy",
             "X-Frame-Options",
@@ -14,9 +16,9 @@ class SecurityHeaderScanner:
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self, target):
+    def scan(self):
         try:
-            response = self._get_response(target)
+            response = self._get_response(self.target)
             return self._check_headers(response)
         except Exception as e:
             if self.verbose:
@@ -56,4 +58,4 @@ class SecurityHeaderScanner:
         }
 
 def scan(args=None):
-    return SecurityHeaderScanner().scan(args.target)
+    return SecurityHeaderScanner(args).scan()

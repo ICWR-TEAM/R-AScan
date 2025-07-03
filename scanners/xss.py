@@ -1,5 +1,5 @@
 import requests, os, re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
@@ -76,16 +76,47 @@ class XSSScanner:
                 test_url = base + ("&" if "?" in base else "?") + urlencode({param: self.payload})
                 resp = requests.get(test_url, headers=self.headers, timeout=self.timeout, verify=False, allow_redirects=True)
                 is_vuln = self.payload in resp.text
-                if is_vuln:
-                    result["reflected"]["vulnerable"] = True
-                    result["reflected"]["url"] = resp.url
                 if self.verbose or is_vuln:
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_url = self.printer.color_text(resp.url, "yellow")
-                    status = "Detected" if is_vuln else "Clean"
                     vuln_status = self.printer.color_text("Vuln", "green") if is_vuln else self.printer.color_text("Not Vuln", "red")
-                    print(f"[*] [Module: {colored_module}] [{vuln_status}] [Reflected XSS {status}] [Param: {param}] [URL: {colored_url}]")
+                    print(f"[*] [Module: {colored_module}] [{vuln_status}] [Reflected XSS] [Param: {param}] [URL: {colored_url}]")
                 if is_vuln:
+                    result["reflected"]["vulnerable"] = True
+                    result["reflected"]["url"] = resp.url
+                    break
+
+            soup = BeautifulSoup(r.text, "html.parser")
+            forms = soup.find_all("form")
+            for form in forms:
+                method = form.get("method", "get").lower()
+                raw_action = form.get("action")
+                if raw_action is None or raw_action.strip() == "":
+                    action_url = base
+                else:
+                    action_url = urljoin(base, raw_action)
+
+                inputs = form.find_all("input")
+                params = {}
+                for i in inputs:
+                    name = i.get("name")
+                    if name:
+                        params[name] = self.payload
+
+                if method == "get":
+                    resp = requests.get(action_url, headers=self.headers, params=params, timeout=self.timeout, verify=False)
+                else:
+                    resp = requests.post(action_url, headers=self.headers, data=params, timeout=self.timeout, verify=False)
+
+                is_vuln = self.payload in resp.text
+                if self.verbose or is_vuln:
+                    colored_module = self.printer.color_text(self.module_name, "cyan")
+                    colored_url = self.printer.color_text(resp.url, "yellow")
+                    vuln_status = self.printer.color_text("Vuln", "green") if is_vuln else self.printer.color_text("Not Vuln", "red")
+                    print(f"[*] [Module: {colored_module}] [{vuln_status}] [Reflected XSS] [Form Action: {action_url}] [URL: {colored_url}]")
+                if is_vuln:
+                    result["reflected"]["vulnerable"] = True
+                    result["reflected"]["url"] = resp.url
                     break
         except:
             pass
@@ -101,14 +132,14 @@ class XSSScanner:
             if post_resp.ok:
                 get_resp = requests.get(post_url, headers=self.headers, timeout=self.timeout, verify=False)
                 is_vuln = self.payload in get_resp.text
-                if is_vuln:
-                    result["stored"]["vulnerable"] = True
-                    result["stored"]["url"] = post_url
                 if self.verbose or is_vuln:
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_url = self.printer.color_text(post_url, "yellow")
-                    status = "Detected" if is_vuln else "Clean"
-                    print(f"[*] [Module: {colored_module}] [Stored XSS {status}] [URL: {colored_url}]")
+                    status = self.printer.color_text("Vuln", "green") if is_vuln else self.printer.color_text("Not Vuln", "red")
+                    print(f"[*] [Module: {colored_module}] [{status}] [Stored XSS] [URL: {colored_url}]")
+                if is_vuln:
+                    result["stored"]["vulnerable"] = True
+                    result["stored"]["url"] = post_url
         except:
             pass
         return result
@@ -122,7 +153,7 @@ class XSSScanner:
             dom_scripts = []
             for script in scripts:
                 content = script.string or ""
-                if any(keyword in content for keyword in ["document.location", "document.write", "innerHTML", "eval(", "window.location"]):
+                if any(k in content for k in ["document.location", "document.write", "innerHTML", "eval(", "window.location"]):
                     dom_scripts.append(content.strip()[:100])
             if dom_scripts:
                 result["dom"]["vulnerable"] = True
