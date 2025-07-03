@@ -3,8 +3,9 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class RateLimitingScanner:
-    def __init__(self, target, test_path="/", max_requests=20, interval=1):
-        self.target = target
+    def __init__(self, args, test_path="/", max_requests=20, interval=1):
+        self.target = args.target
+        self.verbose = args.verbose
         self.test_path = test_path
         self.max_requests = max_requests
         self.interval = interval
@@ -43,5 +44,5 @@ class RateLimitingScanner:
         }
 
 def scan(args=None):
-    scanner = RateLimitingScanner(args.target)
+    scanner = RateLimitingScanner(args)
     return scanner.scan()

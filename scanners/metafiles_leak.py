@@ -5,8 +5,9 @@ from module.other import Other
 class MetafilesLeak:
     PATHS = ["/robots.txt", "/sitemap.xml", "/.env", "/.git/config"]
 
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = args.target
+        self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
         self.baseline_body = self.get_baseline_body()
@@ -28,7 +29,7 @@ class MetafilesLeak:
             return self.baseline_body[:50].lower() == content[:50].lower()
         return False
 
-    def scan(self):
+    def run(self):
         found = {}
         colored_module = self.printer.color_text(self.module_name, "cyan")
 
@@ -53,4 +54,4 @@ class MetafilesLeak:
         return {"metafiles": found}
 
 def scan(args=None):
-    return MetafilesLeak(args.target).scan()
+    return MetafilesLeak(args).run()
