@@ -76,10 +76,11 @@ class OpenRedirectScanner:
             }
 
         except Exception as e:
-            colored_module = self.printer.color_text(self.module_name, "cyan")
-            colored_url = self.printer.color_text(url, "yellow")
-            colored_error = self.printer.color_text(str(e), "red")
-            print(f"[!] [Module: {colored_module}] [Error] {colored_url} - {colored_error}")
+            if self.verbose:
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_url = self.printer.color_text(url, "yellow")
+                colored_error = self.printer.color_text(str(e), "red")
+                print(f"[!] [Module: {colored_module}] [Error] {colored_url} - {colored_error}")
             return {
                 "error": str(e),
                 "protocol": proto,

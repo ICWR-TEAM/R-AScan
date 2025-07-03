@@ -47,7 +47,8 @@ class LFIScanner:
                     attr = tag.get("href") or tag.get("action") or tag.string or ""
                     found.update(re.findall(r"[?&]([a-zA-Z0-9_-]+)=", attr))
             except Exception as e:
-                self.print_error("Failed extracting params from", url, e)
+                if self.verbose:
+                    self.print_error("Failed extracting params from", url, e)
         return list(found.union(set(self.common_params)))
 
     def is_valid_passwd(self, text):
@@ -64,7 +65,8 @@ class LFIScanner:
             elif self.verbose:
                 self.print_status("Not Vuln", url, level="-")
         except Exception as e:
-            self.print_error("Error checking", url, e)
+            if self.verbose:
+                self.print_error("Error checking", url, e)
         return None
 
     def print_status(self, status_text, url, level="*"):

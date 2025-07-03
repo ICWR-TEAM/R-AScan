@@ -22,8 +22,9 @@ class RateLimitingScanner:
                 statuses.append(r.status_code)
                 time.sleep(self.interval / self.max_requests)
             except Exception as e:
-                colored_error = self.printer.color_text(str(e), "red")
-                print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
+                if self.verbose:
+                    colored_error = self.printer.color_text(str(e), "red")
+                    print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
                 return {"error": str(e)}
 
         rate_limited = any(s in [429, 503] for s in statuses)

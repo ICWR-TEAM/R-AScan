@@ -70,7 +70,7 @@ class SensitiveFileScanner:
                         code = result["status"]
                         colored_status = self.printer.color_text(code, "green" if code == 200 else "red")
                         print(f"[*] [Module: {colored_module}] [File: {colored_file}] [Status Code: {colored_status}]")
-                    elif "error" in result:
+                    elif "error" in result and self.verbose:
                         colored_error = self.printer.color_text(result["error"], "red")
                         print(f"[!] [Module: {colored_module}] [File: {colored_file}] [Error: {colored_error}]")
 

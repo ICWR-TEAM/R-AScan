@@ -7,6 +7,7 @@ class EnumerationDirectoryScanner:
     def __init__(self, args):
         self.target = args.target
         self.max_workers = args.threads
+        self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
         self.paths = open(DIRECTORIES, "r").read().splitlines()
@@ -66,7 +67,7 @@ class EnumerationDirectoryScanner:
                         status_color = "green" if result["status"] == 200 else "red"
                         colored_status = self.printer.color_text(str(result["status"]), status_color)
                         print(f"[*] [Module: {colored_module}] [URL: {colored_url}] [Status: {colored_status}]")
-                    elif "error" in result:
+                    elif "error" in result and self.verbose:
                         colored_error = self.printer.color_text(result["error"], "red")
                         print(f"[!] [Module: {colored_module}] [URL: {colored_url}] [Error: {colored_error}]")
 

@@ -43,8 +43,9 @@ class MetafilesLeak:
                     print(f"[*] [Module: {colored_module}] [Found: {colored_path}]")
                     found[path] = content_preview
             except Exception as e:
-                colored_error = self.printer.color_text(str(e), "red")
-                print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
+                if self.verbose:
+                    colored_error = self.printer.color_text(str(e), "red")
+                    print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
 
         if not found:
             print(f"[*] [Module: {colored_module}] No metafiles found.")

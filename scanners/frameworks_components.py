@@ -3,8 +3,9 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class FrameworksComponents:
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = args
+        self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
@@ -31,9 +32,10 @@ class FrameworksComponents:
                 "x-generator": x_generator
             }
         except Exception as e:
-            colored_error = self.printer.color_text(str(e), "red")
-            print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
+            if self.verbose:
+                colored_error = self.printer.color_text(str(e), "red")
+                print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
             return {"error": str(e)}
 
 def scan(args=None):
-    return FrameworksComponents(args.target).scan()
+    return FrameworksComponents(args).scan()

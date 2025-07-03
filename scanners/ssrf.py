@@ -35,7 +35,8 @@ class SSRFScanner:
             if self.verbose:
                 self.print_status("-", "Not Vuln", full_url)
         except Exception as e:
-            self.print_error(full_url, e)
+            if self.verbose:
+                self.print_error(full_url, e)
         return None
 
     def run(self):

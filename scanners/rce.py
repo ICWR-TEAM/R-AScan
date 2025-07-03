@@ -44,7 +44,8 @@ class RCEScanner:
             if self.verbose:
                 self.print_status("Not Vuln", url, level="-")
         except Exception as e:
-            self.print_error("Error checking", url, e)
+            if self.verbose:
+                self.print_error("Error checking", url, e)
         return None
 
     def print_status(self, status, url, level="*"):

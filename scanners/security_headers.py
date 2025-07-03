@@ -19,9 +19,10 @@ class SecurityHeaderScanner:
             response = self._get_response(target)
             return self._check_headers(response)
         except Exception as e:
-            colored_module = self.printer.color_text(self.module_name, "cyan")
-            colored_error = self.printer.color_text(str(e), "red")
-            print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
+            if self.verbose:
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_error = self.printer.color_text(str(e), "red")
+                print(f"[!] [Module: {colored_module}] [Error: {colored_error}]")
             return {"error": str(e)}
 
     def _get_response(self, target):
