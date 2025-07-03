@@ -83,7 +83,8 @@ class XSSScanner:
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_url = self.printer.color_text(resp.url, "yellow")
                     status = "Detected" if is_vuln else "Clean"
-                    print(f"[*] [Module: {colored_module}] [Reflected XSS {status}] [Param: {param}] [URL: {colored_url}]")
+                    vuln_status = self.printer.color_text("Vuln", "green") if is_vuln else self.printer.color_text("Not Vuln", "red")
+                    print(f"[*] [Module: {colored_module}] [{vuln_status}] [Reflected XSS {status}] [Param: {param}] [URL: {colored_url}]")
                 if is_vuln:
                     break
         except:
