@@ -28,6 +28,7 @@ sys.dont_write_bytecode = True
 class RAScan:
     def __init__(self, args=None, scanner_dir="scanners"):
         self.args = args
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.scanner_dir = Path(__file__).parent / scanner_dir
         self.final_result = {"result": []}
 
@@ -81,7 +82,7 @@ class RAScan:
             if not self.args.target:
                 return
 
-        colored_target = Other().color_text(self.args.target, "yellow")
+        colored_target = Other().color_text(self.target, "yellow")
         print(f"[*] [Starting scan on: {colored_target}]")
         modules = self.discover_modules()
 
