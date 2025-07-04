@@ -13,7 +13,7 @@ class AccessControlScanner:
 
     def __init__(self, args):
         self.args = args
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.max_workers = args.threads
         self.printer = Other()
