@@ -11,7 +11,7 @@ class SQLiScanner:
     COMMON_PARAMS = ["id", "q", "search", "user", "query", "page", "lang", "ref", "file", "name"]
 
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.threads = args.threads
         self.verbose = args.verbose
         self.payloads = [
