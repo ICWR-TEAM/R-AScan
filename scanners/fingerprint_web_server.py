@@ -3,7 +3,8 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class WebFingerprintScanner:
-    def __init__(self):
+    def __init__(self, args):
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.fingerprint_headers = [
             "Server",
             "X-Powered-By",
@@ -21,7 +22,8 @@ class WebFingerprintScanner:
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self, target):
+    def scan(self):
+        target = self.target
         colored_module = self.printer.color_text(self.module_name, "cyan")
         try:
             url = f"http://{target}"
@@ -90,4 +92,4 @@ class WebFingerprintScanner:
         return list(set(detected))
 
 def scan(args=None):
-    return WebFingerprintScanner().scan(args.target)
+    return WebFingerprintScanner(args).scan()
