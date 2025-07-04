@@ -122,6 +122,10 @@ if __name__ == "__main__":
         help="Custom PORT HTTP/S (optional)"
     )
     parser.add_argument(
+        "--path", type=str,
+        help="Custom PATH URL HTTP/S (optional)"
+    )
+    parser.add_argument(
         "--update", action="store_true",
         help="Only update scanner modules without scanning"
     )
