@@ -67,9 +67,7 @@ $$ |  $$ |        $$ |  $$ |\$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |
 [+] R-AScan (Rusher Automatic Scan) | HarshXor - incrustwerush.org
 ===================================================================
 
-[-] [A target must be specified unless the --update option is used]
-
-usage: R-AScan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [--update] [--verbose]
+usage: R-AScan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [-p PORT] [--path PATH] [--update] [--verbose]
 
 options:
   -h, --help            show this help message and exit
@@ -77,6 +75,8 @@ options:
   -t, --threads THREADS
                         Number of threads to use (default: 5)
   -o, --output OUTPUT   Custom output file path (optional)
+  -p, --port PORT       Custom PORT HTTP/S (optional)
+  --path PATH           Custom PATH URL HTTP/S (optional)
   --update              Only update scanner modules without scanning
   --verbose             Verbose detail log
 ```
