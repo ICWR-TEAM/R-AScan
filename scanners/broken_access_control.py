@@ -8,7 +8,7 @@ class BrokenAccessControlScanner:
 
     def __init__(self, args):
         self.verbose = args.verbose
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
         self.session.timeout = DEFAULT_TIMEOUT
