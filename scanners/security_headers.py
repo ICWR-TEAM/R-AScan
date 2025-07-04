@@ -4,7 +4,7 @@ from module.other import Other
 
 class SecurityHeaderScanner:
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.required_headers = [
             "Content-Security-Policy",
