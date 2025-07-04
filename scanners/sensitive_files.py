@@ -5,7 +5,7 @@ from module.other import Other
 
 class SensitiveFileScanner:
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.thread = args.threads
         self.paths = open(SENSITIVE_FILES, "r").read().splitlines()
