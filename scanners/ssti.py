@@ -29,7 +29,7 @@ class SSTIScanner:
     STRICT_INDICATORS = ["49", "14", "0", "1337"]
 
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.threads = args.threads
         self.verbose = args.verbose
         self.session = requests.Session()
