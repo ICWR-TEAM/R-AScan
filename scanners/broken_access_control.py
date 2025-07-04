@@ -1,6 +1,6 @@
 import requests, re, json, os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS
 from module.other import Other
 
 class BrokenAccessControlScanner:
@@ -92,6 +92,13 @@ class BrokenAccessControlScanner:
                         for js_content in [js_content_http, js_content_https]:
                             if js_content:
                                 self.found_endpoints.update(self._extract_from_html_js(js_content))
+
+        if len(self.found_endpoints) == 0:
+            try:
+                with open(COMMON_ENDPOINTS, "r") as f:
+                    self.found_endpoints.update([line.strip() for line in f if line.strip()])
+            except Exception as e:
+                pass
 
     def _fetch_url(self, url):
         try:
