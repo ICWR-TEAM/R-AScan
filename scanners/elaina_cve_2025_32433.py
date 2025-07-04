@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import socket
 import struct
 import os
@@ -68,7 +66,7 @@ class ElainaCVE202532433:
             print(f"[+] [Module: {colored_module}] [{status}] [Target: {colored_target}]")
         else:
             status = self.printer.color_text("Not Vuln", "red")
-            print(f"[-] [Module: {colored_module}] [{status}] [Target: {colored_target}]")
+            print(f"[*] [Module: {colored_module}] [{status}] [Target: {colored_target}]")
 
         return result
 
