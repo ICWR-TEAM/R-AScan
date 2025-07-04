@@ -9,7 +9,7 @@ from module.other import Other
 
 class LFIScanner:
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.threads = args.threads
         self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
