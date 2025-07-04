@@ -16,7 +16,7 @@ class EndpointDump:
     JS_FILE_EXTENSIONS = [".js", ".mjs"]
 
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.found_endpoints = set()
         self.session = requests.Session()
         self.session.headers.update(HTTP_HEADERS)
