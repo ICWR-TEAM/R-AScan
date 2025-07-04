@@ -11,7 +11,7 @@
 
 R-AScan is a modular, multithreaded vulnerability scanner framework written in Python. It dynamically loads all `.py` scanner modules in the `scanners/` directory and executes them against a target. Each module returns structured output and is saved to a JSON file for analysis.
 
-<img width="1071" alt="image" src="https://github.com/user-attachments/assets/a17a9c2a-9f58-49bd-bb23-4a588245e2a4" />
+<img width="1073" alt="image" src="https://github.com/user-attachments/assets/0fa1e81f-6e11-4d9f-908f-ca40a505f6cc" />
 
 ## Features
 
