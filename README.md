@@ -94,6 +94,8 @@ python3 main.py --update
 * `-x`, `--target` — Target domain or IP address (required unless using `--update`)
 * `-t`, `--threads` — Number of threads (default: 5)
 * `-o`, `--output` — Path to save JSON result (optional)
+* `-p`, `--port` - Custom PORT HTTP/S (optional)
+* `--path` - Custom PATH URL HTTP/S (optional)
 * `--update` — Update scanner modules from GitHub and exit
 * `--verbose` — Print detailed output from each module
 
