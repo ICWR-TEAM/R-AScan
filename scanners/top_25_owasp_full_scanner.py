@@ -28,7 +28,7 @@ class Top25FastScanner:
     PARAMS = GLOBAL_PARAMS
 
     def __init__(self, args):
-        self.target = f"http://{args.target}".rstrip("/")
+        self.target = f"http://{args.target}:{args.port}".rstrip("/") if args.port else f"http://{args.target}".rstrip("/")
         self.verbose = args.verbose
         self.thread = args.threads
         self.session = requests.Session()
