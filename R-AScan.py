@@ -61,7 +61,8 @@ class RAScan:
     def scan_module(self, file_path):
         try:
             module_name, module = self.load_module(file_path)
-            colored_module = Other().color_text(module_name, "cyan")
+            relative_path = file_path.relative_to(self.scanner_dir)
+            colored_module = Other().color_text(str(relative_path), "cyan")
             print(f"[*] [Module: {colored_module}] [Started Scan]")
             if hasattr(module, "scan"):
                 result = module.scan(self.args)
