@@ -5,7 +5,7 @@ from module.other import Other
 
 class DeploymentConfig:
     def __init__(self, target):
-        self.target = target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
