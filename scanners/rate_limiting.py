@@ -4,7 +4,7 @@ from module.other import Other
 
 class RateLimitingScanner:
     def __init__(self, args, test_path="/", max_requests=20, interval=1):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.test_path = test_path
         self.max_requests = max_requests
