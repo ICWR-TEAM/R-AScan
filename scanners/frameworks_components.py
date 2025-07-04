@@ -4,7 +4,7 @@ from module.other import Other
 
 class FrameworksComponents:
     def __init__(self, args):
-        self.target = args
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
