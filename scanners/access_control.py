@@ -1,4 +1,5 @@
 import requests, os
+from pathlib import Path
 from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from module.other import Other
@@ -17,7 +18,7 @@ class AccessControlScanner:
         self.verbose = args.verbose
         self.max_workers = args.threads
         self.printer = Other()
-        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.module_name = self.module_name = str(Path(__file__).relative_to(Path(__file__).parents[1])).replace(".py", "")
 
     def check_endpoint(self, protocol, endpoint):
         url = f"{protocol}://{self.target}{endpoint}"
