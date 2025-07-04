@@ -5,7 +5,7 @@ from module.other import Other
 
 class EnumerationDirectoryScanner:
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.max_workers = args.threads
         self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
