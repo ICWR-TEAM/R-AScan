@@ -80,8 +80,9 @@ class RAScan:
             
             if not self.args.target:
                 return
-        
-        print(f"[*] [Starting scan on: {self.args.target}]")
+
+        colored_target = Other().color_text(self.args.target, "yellow")
+        print(f"[*] [Starting scan on: {colored_target}]")
         modules = self.discover_modules()
 
         with ThreadPoolExecutor(max_workers=self.args.threads) as executor:
