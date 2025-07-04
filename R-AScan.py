@@ -49,7 +49,7 @@ class RAScan:
             print(f"[!] Update error: {e}")
 
     def discover_modules(self):
-        return [f for f in self.scanner_dir.glob("*.py") if not f.name.startswith("__")]
+        return [f for f in self.scanner_dir.rglob("*.py") if not f.name.startswith("__")]
 
     def load_module(self, file_path):
         module_name = file_path.stem
