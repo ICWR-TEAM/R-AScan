@@ -6,7 +6,7 @@ class MetafilesLeak:
     PATHS = ["/robots.txt", "/sitemap.xml", "/.env", "/.git/config"]
 
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
