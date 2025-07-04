@@ -9,7 +9,7 @@ class EntryPoints:
     PROTOCOLS = ["http", "https"]
 
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.max_workers = getattr(args, "threads", 5)
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
