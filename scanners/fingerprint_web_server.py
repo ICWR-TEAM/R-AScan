@@ -25,6 +25,7 @@ class WebFingerprintScanner:
     def scan(self):
         target = self.target
         colored_module = self.printer.color_text(self.module_name, "cyan")
+        colored_target = self.printer.color_text(target, "yellow")
         try:
             url = f"http://{target}"
             response = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
@@ -33,7 +34,7 @@ class WebFingerprintScanner:
             tech_insight = self._analyze_headers(fingerprints)
 
             if fingerprints:
-                print(f"[*] [Module: {colored_module}] Found fingerprint headers:")
+                print(f"[*] [Module: {colored_module}] [Target: {colored_target}] Found fingerprint headers:")
                 for k, v in fingerprints.items():
                     print(f"    [*] {k}: {v}")
             if tech_insight:
