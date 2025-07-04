@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 class CommandInjectionScanner:
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
         self.threads = args.threads
         self.session = requests.Session()
