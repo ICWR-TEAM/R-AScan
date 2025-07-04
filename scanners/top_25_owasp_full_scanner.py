@@ -70,7 +70,7 @@ class Top25FastScanner:
                 colored_method = self.printer.color_text(method, "magenta")
                 colored_param = self.printer.color_text(f"[{param}]", "green")
                 colored_status = self.printer.color_text(str(status), "green" if is_vuln else "red")
-                message = f"[*] [Module: {colored_module}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]"
+                message = f"[*] [Module: {colored_module}] [Target: {self.target}] [Cat: {colored_cat}] [Method: {colored_method}] [Param: {colored_param}] [Status: {colored_status}]"
 
                 if self.verbose or is_vuln:
                     print(message)
