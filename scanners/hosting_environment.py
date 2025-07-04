@@ -3,7 +3,7 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class HostingEnvironment:
-    def __init__(self, target):
+    def __init__(self, args):
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
@@ -32,4 +32,4 @@ class HostingEnvironment:
             return {"error": str(e)}
 
 def scan(args=None):
-    return HostingEnvironment(args.target).scan()
+    return HostingEnvironment(args).scan()
