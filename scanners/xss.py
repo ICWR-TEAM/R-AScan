@@ -9,7 +9,7 @@ class XSSScanner:
     COMMON_PARAMS = ["q", "search", "id", "page", "lang", "query", "keyword", "file", "ref", "url"]
 
     def __init__(self, args):
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.payload = "<script>alert('xss')</script>"
         self.headers = HTTP_HEADERS
         self.timeout = DEFAULT_TIMEOUT
