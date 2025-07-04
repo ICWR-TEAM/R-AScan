@@ -6,7 +6,7 @@ from module.other import Other
 class HTTPSmugglingScanner:
     def __init__(self, args):
         self.args = args
-        self.target = args.target
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = self.args.verbose
         self.threads = self.args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
