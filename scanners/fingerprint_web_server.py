@@ -38,7 +38,7 @@ class WebFingerprintScanner:
                 for k, v in fingerprints.items():
                     print(f"    [*] {k}: {v}")
             if tech_insight:
-                print(f"[*] [Module: {colored_module}] Detected technologies: {', '.join(tech_insight)}")
+                print(f"[*] [Module: {colored_module}] [Target: {colored_target}] Detected technologies: {', '.join(tech_insight)}")
             else:
                 print(f"[*] [Module: {colored_module}] No technology detected.")
 
