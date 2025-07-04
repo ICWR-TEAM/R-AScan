@@ -5,12 +5,12 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class ContentLeak:
-    def __init__(self, target):
-        self.target = target
+    def __init__(self, args):
+        self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
 
-    def scan(self):
+    def run(self):
         try:
             r = requests.get(f"http://{self.target}", headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT)
             comments = re.findall(r"<!--(.*?)-->", r.text, re.DOTALL)
@@ -30,4 +30,4 @@ class ContentLeak:
             return {"error": str(e)}
 
 def scan(args=None):
-    return ContentLeak(args.target).scan()
+    return ContentLeak(args).run()
