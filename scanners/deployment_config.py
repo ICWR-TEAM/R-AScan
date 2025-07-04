@@ -4,7 +4,7 @@ from config import HTTP_HEADERS, DEFAULT_TIMEOUT
 from module.other import Other
 
 class DeploymentConfig:
-    def __init__(self, target):
+    def __init__(self, args):
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
@@ -33,4 +33,4 @@ class DeploymentConfig:
             return {"error": str(e)}
 
 def scan(args=None):
-    return DeploymentConfig(args.target).scan()
+    return DeploymentConfig(args).scan()
