@@ -40,6 +40,10 @@ class MLOptimizer:
                 return 1
             if "status_line" in flat and "429" in flat and "anomaly" in flat:
                 return 1
+            if "access_control_results" in result:
+                for r in result["access_control_results"]:
+                    if isinstance(r, dict) and r.get("status_code") in [200, 201, 202, 204]:
+                        return 1
             if any(k in flat for k in ["injection", "leak", "anomaly", "payload"]):
                 return 1
         elif isinstance(result, list):
