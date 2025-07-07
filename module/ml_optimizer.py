@@ -1,7 +1,8 @@
 import json
 import os
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from module.other import Other
 
 class MLOptimizer:
@@ -10,19 +11,39 @@ class MLOptimizer:
         self.output_path = args.output or f"scan_output-{args.target}.json"
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
-        self.model = LogisticRegression()
+        self.model = RandomForestClassifier()
         self.vectorizer = TfidfVectorizer()
 
     def extract_features(self, entries):
         texts = []
         labels = []
         for entry in entries:
-            for module_name, result in entry.items():
-                text = json.dumps(result)
-                texts.append(text)
-                label = 1 if "vuln" in text.lower() or "vulnerable" in text.lower() else 0
-                labels.append(label)
+            module_name = list(entry.keys())[0]
+            result = entry[module_name]
+            text = json.dumps(result)
+            label = self.auto_label(result)
+            texts.append(text)
+            labels.append(label)
         return texts, labels
+
+    def auto_label(self, result):
+        if isinstance(result, dict):
+            flat = json.dumps(result).lower()
+            if '"vulnerable": true' in flat:
+                return 1
+            if "curl" in flat and ("chunked" in flat or "payload" in flat):
+                return 1
+            if "match" in flat and "payload" in flat and "7*7" in flat:
+                return 1
+            if "status_line" in flat and "429" in flat and "anomaly" in flat:
+                return 1
+            if any(k in flat for k in ["injection", "leak", "anomaly", "payload"]):
+                return 1
+        elif isinstance(result, list):
+            for item in result:
+                if self.auto_label(item) == 1:
+                    return 1
+        return 0
 
     def train_model(self, texts, labels):
         X = self.vectorizer.fit_transform(texts)
@@ -37,7 +58,9 @@ class MLOptimizer:
             print(f"[!] Scan result not found: {self.output_path}")
             return
 
-        data = json.load(open(self.output_path, "r"))
+        with open(self.output_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
         entries = data.get("result", [])
         texts, labels = self.extract_features(entries)
 
