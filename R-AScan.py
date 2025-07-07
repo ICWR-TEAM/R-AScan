@@ -27,22 +27,10 @@ sys.dont_write_bytecode = True
 
 class RAScan:
     def __init__(self, args=None, scanner_dir="scanners"):
-        self.install_dependencies()
         self.args = args
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.scanner_dir = Path(__file__).parent / scanner_dir
         self.final_result = {"result": []}
-
-    def install_dependencies(self):
-        import pkg_resources
-        requirements_path = Path(__file__).parent / "requirements.txt"
-        try:
-            with open(requirements_path) as f:
-                packages = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-            pkg_resources.require(packages)
-        except (ImportError, pkg_resources.DistributionNotFound):
-            print("[*] Installing missing dependencies from requirements.txt...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", str(requirements_path)])
 
     def update_scanners_from_github(self):
         print("[*] [Update Scanners]")
