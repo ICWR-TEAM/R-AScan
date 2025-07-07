@@ -102,6 +102,14 @@ class RAScan:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(self.final_result, f, indent=2)
 
+        if self.args.optimize:
+            try:
+                from module import ml_optimizer
+                print("[*] [ML Optimizer] Running post-scan analysis...")
+                ml_optimizer.run_ml({"input": str(output_path)})
+            except Exception as e:
+                print(f"[!] [ML Optimizer] Failed to run: {e}")
+
         print(f"[*] [Scan complete. Results saved to '{output_path}']")
 
 
@@ -134,6 +142,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--verbose", action="store_true",
         help="Verbose detail log"
+    )
+    parser.add_argument(
+        "--optimize", action="store_true",
+        help="Optimize result with machine learning"
     )
     args = parser.parse_args()
     
