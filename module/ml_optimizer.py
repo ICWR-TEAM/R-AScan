@@ -56,7 +56,7 @@ class MLOptimizer:
             confidence = f"{prob * 100:.2f}%"
             colored_name = self.printer.color_text(module_name, "cyan")
             colored_label = self.printer.color_text(label, "green" if label == "Vuln-Likely" else "red")
-            print(f"[+] {colored_name} — {colored_label} ({confidence})")
+            print(f"[+] [Module: {colored_name}] — [Result: {colored_label} ({confidence})]")
 
 def scan(args=None):
     return MLOptimizer(args).run()
