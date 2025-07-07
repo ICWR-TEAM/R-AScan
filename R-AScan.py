@@ -106,7 +106,7 @@ class RAScan:
             try:
                 from module import ml_optimizer
                 print("[*] [ML Optimizer] Running post-scan analysis...")
-                ml_optimizer.run_ml({"input": str(output_path)})
+                ml_optimizer.scan(self.args)
             except Exception as e:
                 print(f"[!] [ML Optimizer] Failed to run: {e}")
 
