@@ -66,7 +66,9 @@ $$ |  $$ |        $$ |  $$ |\$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |
 [+] R-AScan (Rusher Automatic Scan) | HarshXor - incrustwerush.org
 ===================================================================
 
-usage: R-AScan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [-p PORT] [--path PATH] [--update] [--verbose]
+[-] [A target must be specified unless the --update option is used]
+
+usage: R-AScan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [-p PORT] [--path PATH] [--update] [--verbose] [--optimize]
 
 options:
   -h, --help            show this help message and exit
@@ -78,6 +80,7 @@ options:
   --path PATH           Custom PATH URL HTTP/S (optional)
   --update              Only update scanner modules without scanning
   --verbose             Verbose detail log
+  --optimize            Optimize result with machine learning
 ```
 
 ### Examples
@@ -97,6 +100,7 @@ python3 main.py --update
 * `--path` - Custom PATH URL HTTP/S (optional)
 * `--update` — Update scanner modules from GitHub and exit
 * `--verbose` — Print detailed output from each module
+* `--optimize` - Optimize result with machine learning
 
 ## Output
 
