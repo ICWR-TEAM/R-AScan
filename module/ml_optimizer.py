@@ -31,6 +31,9 @@ class MLOptimizer:
             flat = json.dumps(result).lower()
             if '"vulnerable": true' in flat:
                 return 1
+            if "missing" in result and isinstance(result["missing"], list):
+                if len(result["missing"]) >= 2:
+                    return 1
             if "curl" in flat and ("chunked" in flat or "payload" in flat):
                 return 1
             if "match" in flat and "payload" in flat and "7*7" in flat:
