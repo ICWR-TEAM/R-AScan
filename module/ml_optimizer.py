@@ -47,8 +47,8 @@ class MLOptimizer:
 
         self.train_model(texts, labels)
         probabilities = self.predict(texts)
-
-        print(f"[*] [Module: {self.module_name}] [ML Optimization Results]")
+        colored_module = self.printer.color_text(self.module_name, "cyan")
+        print(f"[*] [Module: {colored_module}] [ML Optimization Results]")
         for idx, entry in enumerate(entries):
             module_name = list(entry.keys())[0]
             prob = probabilities[idx][1]
