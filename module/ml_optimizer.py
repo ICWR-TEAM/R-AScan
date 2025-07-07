@@ -40,6 +40,10 @@ class MLOptimizer:
                 return 1
             if "status_line" in flat and "429" in flat and "anomaly" in flat:
                 return 1
+            if "findings" in result:
+                for finding in result["findings"]:
+                    if finding.get("vuln") is True:
+                        return 1
             if "potential_bac" in result:
                 if any(r.get("status") in [200, 201, 202, 203, 204, 206, 207] for r in result["potential_bac"]):
                     return 1
