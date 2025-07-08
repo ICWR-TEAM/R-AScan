@@ -11,7 +11,8 @@ class AccessControlScanner:
         "/config", "/.env", "/backup.zip",
     ]
 
-    SENSITIVE_ENDPOINTS.append(open(COMMON_ENDPOINTS, "r").read().splitlines())
+    with open(COMMON_ENDPOINTS, "r") as f:
+        SENSITIVE_ENDPOINTS.extend([line.strip() for line in f if line.strip()])
 
     def __init__(self, args):
         self.args = args
@@ -29,11 +30,18 @@ class AccessControlScanner:
             try:
                 url = f"{proto}://{self.target}{fake_path}"
                 r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+                status_code = r.status_code
+                content_length = len(r.content)
+                colored_module = self.printer.color_text(self.module_name, "cyan")
+                colored_proto = self.printer.color_text(proto.upper(), "magenta")
+                colored_code = self.printer.color_text(str(status_code), "yellow")
+                colored_len = self.printer.color_text(str(content_length), "yellow")
+                print(f"[*] [Module: {colored_module}] [Baseline: {colored_proto} {fake_path}] [Status: {colored_code}] [Length: {colored_len}]")
                 return {
-                    "status_code": r.status_code,
-                    "content_length": len(r.content)
+                    "status_code": status_code,
+                    "content_length": content_length
                 }
-            except:
+            except Exception as e:
                 continue
         return {"status_code": 404, "content_length": 0}
 
