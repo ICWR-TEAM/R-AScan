@@ -34,19 +34,25 @@ class RAScan:
 
     def update_scanners_from_github(self):
         print("[*] [Update Scanners]")
-        url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
-        try:
-            for f in requests.get(url, timeout=10).json():
-                if f["name"].endswith(".py"):
-                    path = self.scanner_dir / f["name"]
-                    try:
-                        code = requests.get(f["download_url"], timeout=10).text
-                        path.write_text(code, encoding="utf-8")
-                        print(f"[+] [Downloaded: {f['name']}]")
-                    except Exception as e:
-                        print(f"[!] Failed to download {f['name']}: {e}")
-        except Exception as e:
-            print(f"[!] Update error: {e}")
+        base_url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
+
+        def fetch_and_save(remote_url, local_dir):
+            try:
+                resp = requests.get(remote_url, timeout=10)
+                contents = resp.json()
+                for item in contents:
+                    item_path = local_dir / item["name"]
+                    if item["type"] == "dir":
+                        item_path.mkdir(parents=True, exist_ok=True)
+                        fetch_and_save(item["url"], item_path)
+                    elif item["name"].endswith(".py"):
+                        code = requests.get(item["download_url"], timeout=10).text
+                        item_path.write_text(code, encoding="utf-8")
+                        print(f"[+] [Downloaded: {item_path.relative_to(self.scanner_dir.parent)}]")
+            except Exception as e:
+                print(f"[!] Error updating from {remote_url}: {e}")
+
+        fetch_and_save(base_url, self.scanner_dir)
 
     def discover_modules(self):
         return [f for f in self.scanner_dir.rglob("*.py") if not f.name.startswith("__")]
