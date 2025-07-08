@@ -83,7 +83,7 @@ class AccessControlScanner:
                 print(f"[-] [Module: {self.module_name}] [Error: {e}]")
             return {"url": url, "error": str(e)}
 
-    def scan(self):
+    def run(self):
         results = []
         tasks = []
 
@@ -101,5 +101,4 @@ class AccessControlScanner:
         }
 
 def scan(args=None):
-    scanner = AccessControlScanner(args)
-    return scanner.scan()
+    return AccessControlScanner(args).run()
