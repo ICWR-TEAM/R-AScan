@@ -21,7 +21,7 @@ class BrokenAccessControlScanner:
     def _get_baseline_response(self):
         baseline = {}
         random_number = random.randint(100000, 999999)
-        fake_path = f"/__{random_number}__"
+        fake_path = f"/___random_path_{random_number}__"
         for proto in ["http", "https"]:
             try:
                 url = f"{proto}://{self.target}{fake_path}"
