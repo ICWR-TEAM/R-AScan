@@ -23,7 +23,7 @@ class AccessControlScanner:
 
     def get_baseline_response(self):
         random_number = random.randint(100000, 999999)
-        fake_path = f"/__{random_number}__"
+        fake_path = f"/__random_path_{random_number}__"
         baseline = {}
         for proto in ["http", "https"]:
             try:
