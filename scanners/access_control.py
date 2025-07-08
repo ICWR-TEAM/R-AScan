@@ -96,5 +96,4 @@ class AccessControlScanner:
         }
 
 def scan(args=None):
-    scanner = AccessControlScanner(args)
-    return scanner.scan()
+    return AccessControlScanner(args).scan()
