@@ -1,5 +1,5 @@
-import requests, os
-from config import HTTP_HEADERS, DEFAULT_TIMEOUT
+import requests, os, random
+from config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from module.other import Other
 
@@ -11,6 +11,8 @@ class AccessControlScanner:
         "/config", "/.env", "/backup.zip",
     ]
 
+    SENSITIVE_ENDPOINTS.append(open(COMMON_ENDPOINTS, "r").read().splitlines())
+
     def __init__(self, args):
         self.args = args
         self.target = f"{args.target}:{args.port}" if args.port else args.target
@@ -18,21 +20,40 @@ class AccessControlScanner:
         self.max_workers = args.threads
         self.printer = Other()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.baseline = self.get_baseline_response()
+
+    def get_baseline_response(self):
+        random_number = random.randint(100000, 999999)
+        fake_path = f"/__{random_number}__"
+        for proto in ["http", "https"]:
+            try:
+                url = f"{proto}://{self.target}{fake_path}"
+                r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
+                return {
+                    "status_code": r.status_code,
+                    "content_length": len(r.content)
+                }
+            except:
+                continue
+        return {"status_code": 404, "content_length": 0}
+
+    def is_similar_to_baseline(self, status_code, content_length):
+        if status_code != self.baseline["status_code"]:
+            return False
+        diff = abs(content_length - self.baseline["content_length"])
+        return diff < 20
 
     def check_endpoint(self, protocol, endpoint):
         url = f"{protocol}://{self.target}{endpoint}"
         try:
             r = requests.get(url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, allow_redirects=False)
             status_code = r.status_code
+            content_length = len(r.content)
             redirect = r.headers.get("Location", None)
-            result = {
-                "url": url,
-                "status_code": status_code,
-                "content_length": len(r.content),
-                "redirect_location": redirect,
-            }
 
-            is_vuln = status_code in [200, 201, 202, 204]
+            is_similar = self.is_similar_to_baseline(status_code, content_length)
+            is_vuln = status_code in [200, 201, 202, 204] and not is_similar
+
             if self.verbose or is_vuln:
                 colored_module = self.printer.color_text(self.module_name, "cyan")
                 colored_url = self.printer.color_text(url, "yellow")
@@ -40,7 +61,14 @@ class AccessControlScanner:
                 colored_redirect = self.printer.color_text(str(redirect), "magenta")
                 print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
 
-            return result
+            return {
+                "url": url,
+                "status_code": status_code,
+                "content_length": content_length,
+                "redirect_location": redirect,
+                "baseline_like": is_similar,
+                "vulnerable": is_vuln
+            }
 
         except Exception as e:
             if self.verbose:
@@ -59,7 +87,10 @@ class AccessControlScanner:
             for future in as_completed(tasks):
                 results.append(future.result())
 
-        return {"access_control_results": results}
+        return {
+            "access_control_results": results,
+            "baseline": self.baseline
+        }
 
 def scan(args=None):
     scanner = AccessControlScanner(args)
