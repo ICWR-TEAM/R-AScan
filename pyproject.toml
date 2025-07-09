@@ -1,0 +1,16 @@
+[project]
+name = "R-AScan"
+version = "0.1.0"
+description = "Rusher Automatic Scan"
+authors = [
+  { name="Afrizal FA", email="afrzlf4@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.scripts]
+rascan = "rascan.app:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
