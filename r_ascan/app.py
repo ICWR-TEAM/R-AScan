@@ -101,9 +101,9 @@ class RAScan:
                     self.final_result["result"].append(result)
 
         output_path = (
-            Path(self.args.output)
+            self.args.output
             if self.args.output else
-            Path(__file__).parent / f"scan_output-{self.args.target}.json"
+            Path.cwd() / f"scan_output-{self.args.target}.json"
         )
 
         with open(output_path, "w", encoding="utf-8") as f:
