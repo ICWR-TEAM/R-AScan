@@ -18,13 +18,13 @@ dependencies = [
 ]
 
 [project.scripts]
-R-AScan = "rascan.app:main"
+R-AScan = "source.app:main"
 
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
-"rascan.resources" = ["*.*"]
-"rascan.module" = ["*.*"]
-"rascan.scanners" = ["*.*"]
+"source.resources" = ["*.*"]
+"source.module" = ["*.*"]
+"source.scanners" = ["*.*"]
