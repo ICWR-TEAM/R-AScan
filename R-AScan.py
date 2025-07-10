@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore")
 sys.dont_write_bytecode = True
 
 class RAScan:
-    def __init__(self, args=None, scanner_dir="scanners"):
+    def __init__(self, args=None, scanner_dir="./"):
         self.args = args
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.scanner_dir = Path(__file__).parent / scanner_dir
