@@ -41,16 +41,31 @@ R-AScan is a modular, multithreaded vulnerability scanner framework written in P
 - Python 3.8 or newer
 - `requests` library
 
-Install dependencies:
+## Installation
+
+Repository clone:
 
 ```bash
+git clone https://github.com/ICWR-TEAM/R-AScan
+cd R-AScan
 pip install -r requirements.txt
+python3 R-AScan.py --help
+````
+
+Install with PIP:
+
+```bash
+python3 -m pip install R-AScan
 ````
 
 ## Usage
 
 ```bash
-python3 main.py -x <target> [options]
+python3 R-AScan.py -x <target> [options]
+```
+Or (Install with PIP)
+```bash
+R-AScan -x <target> [options]
 ```
 
 ```
@@ -86,9 +101,9 @@ options:
 ### Examples
 
 ```bash
-python3 main.py -x example.com
-python3 main.py -x 192.168.1.1 -t 10 -o output.json
-python3 main.py --update
+python3 R-AScan.py -x example.com
+python3 R-AScan.py -x 192.168.1.1 -t 10 -o output.json
+python3 R-AScan.py --update
 ```
 
 ### Arguments
@@ -144,7 +159,11 @@ The main framework will automatically discover and execute this module.
 To update scanner modules directly from the GitHub repository:
 
 ```bash
-python3 main.py --update
+python3 R-AScan.py --update
+```
+Or (Install with PIP)
+```bash
+python3 R-AScan.py --update
 ```
 
 All `.py` files in the `scanners/` directory will be downloaded and replaced.
