@@ -11,7 +11,7 @@
 
 R-AScan is a modular, multithreaded vulnerability scanner framework written in Python. It dynamically loads all `.py` scanner modules in the `scanners/` directory and executes them against a target. Each module returns structured output and is saved to a JSON file for analysis.
 
-<img width="1073" alt="image" src="https://github.com/user-attachments/assets/0fa1e81f-6e11-4d9f-908f-ca40a505f6cc" />
+<img width="1158" alt="image" src="https://github.com/user-attachments/assets/7e4c4fc0-fc61-4e7d-acdd-542956fa261f" />
 
 ## Features
 
@@ -41,16 +41,31 @@ R-AScan is a modular, multithreaded vulnerability scanner framework written in P
 - Python 3.8 or newer
 - `requests` library
 
-Install dependencies:
+## Installation
+
+Repository clone:
 
 ```bash
+git clone https://github.com/ICWR-TEAM/R-AScan
+cd R-AScan
 pip install -r requirements.txt
+python3 R-AScan.py --help
+````
+
+Install with PIP:
+
+```bash
+python3 -m pip install R-AScan
 ````
 
 ## Usage
 
 ```bash
-python3 main.py -x <target> [options]
+python3 R-AScan.py -x <target> [options]
+```
+Or (Install with PIP)
+```bash
+R-AScan -x <target> [options]
 ```
 
 ```
@@ -68,7 +83,7 @@ $$ |  $$ |        $$ |  $$ |\$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |
 
 [-] [A target must be specified unless the --update option is used]
 
-usage: r_ascan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [-p PORT] [--path PATH] [--update] [--verbose] [--optimize]
+usage: R-AScan.py [-h] [-x TARGET] [-t THREADS] [-o OUTPUT] [-p PORT] [--path PATH] [--update] [--verbose] [--optimize]
 
 options:
   -h, --help            show this help message and exit
@@ -86,9 +101,15 @@ options:
 ### Examples
 
 ```bash
-python3 main.py -x example.com
-python3 main.py -x 192.168.1.1 -t 10 -o output.json
-python3 main.py --update
+python3 R-AScan.py -x example.com
+python3 R-AScan.py -x 192.168.1.1 -t 10 -o output.json
+python3 R-AScan.py --update
+```
+Or (Install with PIP)
+```bash
+R-AScan -x example.com
+R-AScan -x 192.168.1.1 -t 10 -o output.json
+R-AScan --update
 ```
 
 ### Arguments
@@ -144,7 +165,11 @@ The main framework will automatically discover and execute this module.
 To update scanner modules directly from the GitHub repository:
 
 ```bash
-python3 main.py --update
+python3 R-AScan.py --update
+```
+Or (Install with PIP)
+```bash
+python3 R-AScan.py --update
 ```
 
 All `.py` files in the `scanners/` directory will be downloaded and replaced.
