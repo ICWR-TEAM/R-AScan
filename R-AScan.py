@@ -12,6 +12,7 @@ $$ |  $$ |        $$ |  $$ |\$$$$$$  |\$$$$$$$\\$$$$$$$ |$$ |  $$ |
 ===================================================================
 """)
 
+import os
 import sys
 import json
 import warnings
@@ -103,7 +104,7 @@ class RAScan:
         output_path = (
             Path(self.args.output)
             if self.args.output else
-            Path(__file__).parent / f"scan_output-{self.args.target}.json"
+            f"{os.getcwd()}/scan_output-{self.args.target}.json"
         )
 
         with open(output_path, "w", encoding="utf-8") as f:
