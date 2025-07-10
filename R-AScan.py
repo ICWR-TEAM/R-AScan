@@ -45,7 +45,7 @@ class RAScan:
                     if item["type"] == "dir":
                         item_path.mkdir(parents=True, exist_ok=True)
                         fetch_and_save(item["url"], item_path)
-                    elif item["name"].endswith(".py"):
+                    elif item["name"]:
                         code = requests.get(item["download_url"], timeout=10).text
                         item_path.write_text(code, encoding="utf-8")
                         print(f"[+] [Downloaded: {item_path.relative_to(self.scanner_dir.parent)}]")
