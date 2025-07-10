@@ -1,9 +1,9 @@
 [project]
 name = "R-AScan"
-version = "0.0.4"
+version = "0.0.6"
 description = "Rusher Automatic Scan"
 authors = [
-  { name="Afrizal FA", email="afrzlf4@gmail.com" }
+  { name="HarshXor", email="harshxor@incrustwerush.org" }
 ]
 readme = "README.md"
 requires-python = ">=3.10"
