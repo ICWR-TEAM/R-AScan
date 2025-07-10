@@ -30,6 +30,7 @@ class RAScan:
         self.args = args
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.scanner_dir = Path(__file__).parent / scanner_dir
+        self.module_dir = Path(__file__).parent / "scanners/"
         self.final_result = {"result": []}
 
     def update_scanners_from_github(self):
@@ -55,7 +56,7 @@ class RAScan:
         fetch_and_save(base_url, self.scanner_dir)
 
     def discover_modules(self):
-        return [f for f in self.scanner_dir.rglob("*.py") if not f.name.startswith("__")]
+        return [f for f in self.module_dir.rglob("*.py") if not f.name.startswith("__")]
 
     def load_module(self, file_path):
         module_name = file_path.stem
