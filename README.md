@@ -105,6 +105,12 @@ python3 R-AScan.py -x example.com
 python3 R-AScan.py -x 192.168.1.1 -t 10 -o output.json
 python3 R-AScan.py --update
 ```
+Or (Install with PIP)
+```bash
+R-AScan -x example.com
+R-AScan -x 192.168.1.1 -t 10 -o output.json
+R-AScan --update
+```
 
 ### Arguments
 
