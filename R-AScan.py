@@ -102,7 +102,7 @@ class RAScan:
                     self.final_result["result"].append(result)
 
         output_path = (
-            Path(self.args.output)
+            self.args.output
             if self.args.output else
             f"{os.getcwd()}/scan_output-{self.args.target}.json"
         )
