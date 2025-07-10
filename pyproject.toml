@@ -1,6 +1,6 @@
 [project]
 name = "R-AScan"
-version = "0.1.0"
+version = "0.1.1"
 description = "Rusher Automatic Scan"
 authors = [
   { name="Afrizal FA", email="afrzlf4@gmail.com" }
@@ -14,3 +14,8 @@ rascan = "rascan.app:main"
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"rascan.resources" = ["*.*"]
+"rascan.module" = ["*.*"]
+"rascan.scanners" = ["*.*"]
