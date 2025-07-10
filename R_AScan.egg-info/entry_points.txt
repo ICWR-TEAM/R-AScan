@@ -1,0 +1,2 @@
+[console_scripts]
+R-AScan = r_ascan.app:main
