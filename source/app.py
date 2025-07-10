@@ -34,7 +34,7 @@ class RAScan:
 
     def update_scanners_from_github(self):
         print("[*] [Update Scanners]")
-        base_url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/scanners"
+        base_url = "https://api.github.com/repos/ICWR-TEAM/R-AScan/contents/source/scanners?ref=pypi-release"
 
         def fetch_and_save(remote_url, local_dir):
             try:
