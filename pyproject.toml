@@ -1,6 +1,6 @@
 [project]
 name = "R-AScan"
-version = "0.0.12"
+version = "0.0.13"
 description = "Rusher Automatic Scan"
 authors = [
   { name="HarshXor", email="harshxor@incrustwerush.org" }
