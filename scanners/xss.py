@@ -114,7 +114,7 @@ class XSSScanner:
                     colored_url = self.printer.color_text(resp.url, "yellow")
                     colored_method = self.printer.color_text(method, "yellow")
                     vuln_status = self.printer.color_text("Vuln", "green") if is_vuln else self.printer.color_text("Not Vuln", "red")
-                    print(f"[*] [Module: {colored_module}] [Method: {colored_method}] [{vuln_status}] [Reflected XSS] [Form Action: {action_url}] [URL: {colored_url}]")
+                    print(f"[*] [Module: {colored_module}] [{vuln_status}] [Reflected XSS] [Method: {colored_method}] [Form Action: {action_url}] [URL: {colored_url}]")
                 if is_vuln:
                     result["reflected"]["vulnerable"] = True
                     result["reflected"]["url"] = resp.url
