@@ -6,7 +6,8 @@ from r_ascan.module.other import Other
 class HTTPSmugglingScanner:
     def __init__(self, args):
         self.args = args
-        self.target = f"{args.target}:{args.port}" if args.port else args.target
+        self.target = args.target
+        self.custom_port = args.port
         self.verbose = self.args.verbose
         self.threads = self.args.threads
         self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
@@ -108,11 +109,19 @@ class HTTPSmugglingScanner:
         results = []
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             tasks = []
+            targets = (
+                [(self.custom_port, self.custom_port == 443)]
+                if self.custom_port else [(80, False), (443, True)]
+            )
             for path in self.paths:
                 for payload in self.payloads:
                     if payload.get("raw", "").strip():
-                        tasks.append(executor.submit(self.scan_payload, payload, 80, False, path))
-                        tasks.append(executor.submit(self.scan_payload, payload, 443, True, path))
+                        for port, use_ssl in targets:
+                            tasks.append(
+                                executor.submit(
+                                    self.scan_payload, payload, port, use_ssl, path
+                                )
+                            )
             for future in as_completed(tasks):
                 result = future.result()
                 if self.verbose or result["anomaly"]:

@@ -61,11 +61,11 @@ class AccessControlScanner:
             content_length = len(r.content)
             redirect = r.headers.get("Location", None)
             is_similar = self.is_similar_to_baseline(protocol, status_code, content_length)
-            is_vuln = status_code in [200, 201, 202, 204] and not is_similar
-            if self.verbose or is_vuln:
+            is_exposed = status_code in [200, 201, 202, 204] and not is_similar
+            if self.verbose or is_exposed:
                 colored_module = self.printer.color_text(self.module_name, "cyan")
                 colored_url = self.printer.color_text(url, "yellow")
-                colored_status = self.printer.color_text(str(status_code), "green" if is_vuln else "red")
+                colored_status = self.printer.color_text(str(status_code), "green" if is_exposed else "red")
                 colored_redirect = self.printer.color_text(str(redirect), "magenta")
                 print(f"[+] [Module: {colored_module}] [URL: {colored_url}] [Status Code: {colored_status}] [Redirect: {colored_redirect}]")
             return {
@@ -74,7 +74,10 @@ class AccessControlScanner:
                 "content_length": content_length,
                 "redirect_location": redirect,
                 "baseline_like": is_similar,
-                "vulnerable": is_vuln
+                "vulnerable": False,
+                "potentially_exposed": is_exposed,
+                "confidence": "low" if is_exposed else "none",
+                "note": "Authentication/role comparison is required to confirm broken access control.",
             }
         except Exception as e:
             if self.verbose:

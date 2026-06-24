@@ -16,7 +16,7 @@ The dated changelog path uses the current year, month, and day. Missing director
 
 ## Project Summary
 
-R-AScan is a Python 3.10+ command-line web vulnerability scanner. Its core is a dynamic plugin runner that discovers every Python file under `r_ascan/scanners/`, imports it at runtime, calls a module-level `scan(args)` function, and aggregates each result into JSON.
+R-AScan is a Python 3.10+ command-line web vulnerability scanner. Its core is a dynamic plugin runner that discovers every Python file under `r_ascan/scanners/`, imports it at runtime, validates scanner metadata, calls a module-level `scan(args)` function, and aggregates each result into a normalized JSON envelope.
 
 The repository is small (about 3,000 lines of Python), but the technical depth is moderate because it combines dynamic loading, nested concurrency, HTTP and raw-socket probing, HTML/JavaScript analysis, heuristic vulnerability detection, package resources, self-updating code, and optional machine-learning post-processing.
 
@@ -30,13 +30,15 @@ CLI arguments
     v
 r_ascan.app.RAScan
     |
-    +-- recursively discovers scanners/*.py
-    +-- dynamically imports each module
-    +-- executes modules in a ThreadPoolExecutor
-    +-- collects heterogeneous scanner results
-    +-- writes scan_output-<target>.json
+    +-- validates a host/IP Target and optional port/base path
+    +-- recursively discovers and classifies scanners/*.py
+    +-- defaults to all scanners and optionally filters by safety mode, scanner ID, and category
+    +-- executes one plugin at a time to bound nested concurrency
+    +-- wraps heterogeneous scanner data in ScannerResult
+    +-- normalizes every legacy scanner payload into findings/observations/errors
+    +-- writes versioned JSON and optional self-contained HTML reports
     |
-    +-- optional ml_optimizer post-processing
+    +-- optional deterministic risk scoring and prioritization
 
 Scanner module
     |
@@ -48,12 +50,17 @@ Scanner module
 
 ### Main components
 
-- `r_ascan/app.py`: CLI, module discovery/loading, top-level scheduling, update mechanism, and JSON output.
+- `r_ascan/app.py`: CLI, module discovery/loading, filtering, orchestration, update mechanism, and JSON output.
+- `r_ascan/core/`: target validation, scan context, HTTP transport, request budget, metadata registry, and normalized result models.
 - `r_ascan/config.py`: shared HTTP headers, timeout, payload parameter names, and resource paths.
 - `r_ascan/scanners/`: independent discovery, enumeration, vulnerability, and exploit checks.
 - `r_ascan/scanners/exploits/`: product/CVE-specific active checks.
 - `r_ascan/resources/`: endpoint, directory, sensitive-file, and HTTP-smuggling payload data.
-- `r_ascan/module/ml_optimizer.py`: per-run TF-IDF and random-forest classification of scanner output.
+- `r_ascan/core/normalize.py`: adapter from heterogeneous legacy scanner payloads to the common finding schema.
+- `r_ascan/module/ml_optimizer.py`: deterministic confidence/status/severity risk scoring.
+- `r_ascan/reporting/html.py`: self-contained, print-friendly HTML rendering
+  from the normalized report using an absolute black-and-white palette on a
+  white background.
 - `r_ascan/module/other.py`: terminal color formatting.
 
 ## Scanner Coverage
@@ -76,19 +83,19 @@ Most findings are heuristic signals rather than confirmed exploit proofs. Status
 
 ## Execution and Concurrency Model
 
-The application runs all scanner modules concurrently using `args.threads`. Many individual scanners also create thread pools of the same size. Effective concurrency can therefore approach:
+The runner now executes one scanner plugin at a time because legacy scanners still own internal thread pools. This bounds effective legacy concurrency to approximately `args.threads` instead of multiplying top-level and per-scanner workers.
 
 ```text
 top-level workers × per-scanner workers
 ```
 
-This creates potentially high connection counts, memory use, target load, and nondeterministic result order. Some scanners submit every payload/path combination up front, which can produce a large pending-future queue.
+The shared `ScanContext` also provides a global request budget and bounded HTTP transport for migrated/new scanners. Legacy scanners still calling `requests` directly do not yet contribute to that request counter, and some still submit every payload/path combination up front.
 
 Development should move toward a shared scan context and global concurrency/request budget. Per-host rate limits, cancellation, backoff, and maximum-request controls are important for predictable and safe operation.
 
 ## Current Module Contract
 
-A scanner is currently expected to provide:
+A scanner remains backward compatible with:
 
 ```python
 def scan(args):
@@ -106,7 +113,16 @@ The shared `args` object can contain:
 - `update`
 - `optimize`
 
-This contract is implicit. There is no interface, abstract base class, metadata model, lifecycle hook, or result schema. Modules can also fail during import, and exceptions are reduced to console messages rather than represented in output.
+New scanners can declare a `SCANNER` metadata dictionary and consume
+`args.context`, `args.target_model`, and `args.http`. Missing metadata is
+inferred from the scanner path/name. Import and runtime exceptions are
+represented as failed scanner results.
+
+Repeatable `-H`, `--header`, and `--headers` options accept `Name: value`
+pairs. Header names merge case-insensitively with last-value-wins behavior.
+The merged dictionary is installed into both the shared HTTP transport and the
+in-place `HTTP_HEADERS` dictionary referenced by legacy HTTP scanners.
+Dedicated `--authorization` and `--cookie` values are applied last.
 
 A stronger plugin API should define:
 
@@ -120,17 +136,30 @@ A stronger plugin API should define:
 
 ## Result and Detection Quality
 
-Output currently has this shape:
+Output now uses schema version 2.0 with identical scanner result fields:
 
 ```json
 {
-  "result": [
-    {"scanner_name": {"scanner_specific": "data"}}
+  "schema_version": "2.0",
+  "scan": {"target": {}, "mode": "safe-active"},
+  "summary": {"finding_count": 0, "risk_score": 0},
+  "results": [
+    {
+      "scanner": {},
+      "status": "completed",
+      "findings": [],
+      "observations": [],
+      "errors": [],
+      "summary": {}
+    }
   ]
 }
 ```
 
-Every scanner returns a different structure. There is no common severity, confidence, CWE, OWASP mapping, evidence, remediation, timestamp, or request/response reference. This limits filtering, reporting, deduplication, regression testing, and machine processing.
+All actionable output is converted to the shared `Finding` schema. Raw legacy
+payloads are retained as observations so normalization does not discard useful
+data. Scanner identity, mode, status, timing, errors, request count, and summary
+fields are identical across modules.
 
 A normalized finding should include at least:
 
@@ -150,21 +179,32 @@ The detection engine also needs explicit separation between:
 
 ### Target and protocol handling
 
-Target construction is duplicated throughout the project. Most modules append `port` manually and try both HTTP and HTTPS, while others force HTTP, ignore the supplied port, or scan a fixed port list. `--path` is defined but is effectively unused. Passing a target that already contains a scheme or path can generate invalid URLs.
+The CLI now requires a hostname or IP address and rejects URL schemes,
+embedded ports, and paths. `--port` and `--path` are parsed separately by the
+shared `Target` model, including IPv6 authority formatting. Legacy modules
+still need incremental migration away from duplicated URL construction.
 
 A single parsed target model should own scheme, host, port, base path, IPv6 formatting, URL joining, redirects, and TLS behavior.
 
 ### Networking behavior
 
 - TLS verification is frequently disabled.
-- Some modules suppress warnings globally.
+- `InsecureRequestWarning` is suppressed globally at the CLI entry point to
+  prevent legacy scanners using `verify=False` from flooding terminal output;
+  other Python warning categories remain visible.
+- Custom HTTP headers are validated against malformed names and CR/LF header
+  injection before being propagated to shared and legacy HTTP clients.
 - Broad or bare `except` blocks hide timeout, DNS, TLS, parsing, and programming errors.
 - Shared authentication headers contain placeholder values and are sent broadly.
 - Retry, proxy, user-agent, cookie, authentication, and rate-limit behavior are not configurable enough.
 - Several checks issue state-changing POST, PUT, PATCH, or DELETE requests.
 - Raw-socket modules need stricter host/port separation and protocol handling.
 
-The scanner needs an explicit safe/default mode and a clearly authorized intrusive mode.
+The scanner now defaults to the maximum `exploit` mode and therefore executes
+all discovered scanners. Users can explicitly reduce scope with
+`--mode safe-active`, `--mode passive`, category filters, or scanner filters.
+Because the default includes intrusive and exploit behavior, authorization
+warnings in the README and CLI usage are operationally important.
 
 ### False positives and negatives
 
@@ -185,17 +225,36 @@ Baseline comparison, random canaries, content similarity, control requests, repe
 
 Prefer signed package releases or a versioned scanner bundle. If live updates remain, download into staging, verify a manifest, validate imports, and atomically switch versions.
 
-### ML optimizer
+### Result optimizer
 
-The optimizer creates labels from the same heuristic output it trains on, trains on only the modules from one scan, and predicts those same samples. Its probability is therefore not a meaningful independent vulnerability confidence score. Small scans may also lack two label classes and skip training.
-
-Treat this feature as experimental. A production model requires a labeled multi-scan dataset, held-out evaluation, stable features, calibration, model persistence/versioning, and metrics. A deterministic scoring/rules engine would currently be more defensible.
+The invalid per-scan TF-IDF/random-forest optimizer has been replaced. The
+current optimizer applies explicit severity, confidence, and finding-status
+factors, records its engine version, assigns priorities, and produces a
+reproducible 0–100 report risk score. This is prioritization, not an independent
+proof that a vulnerability exists.
 
 ### Testing and delivery
 
-The repository has no automated test suite, fixtures, CI configuration, lint/type configuration, coverage target, or integration test harness. Network-heavy code is tightly coupled to `requests` and sockets, making deterministic testing difficult.
+The repository now has `unittest` coverage for target parsing, scanner
+selection/mode enforcement, request budgets, result normalization,
+deterministic scoring, and safe HTML escaping. Mocked scanner tests,
+fixtures, CI, lint/type configuration, coverage targets, and integration
+harnesses remain to be added.
 
-Packaging metadata requires Python 3.10+, while the README says Python 3.8+. Installation examples also refer to a legacy `R-AScan.py` file that is not present in this repository.
+Packaging metadata and the README now consistently require Python 3.10+. README installation and usage examples use the packaged `R-AScan` entry point instead of the removed legacy `R-AScan.py` command.
+
+Release `0.1.1` metadata is prepared in `pyproject.toml` with SPDX licensing,
+project URLs, classifiers, keywords, synchronized runtime dependencies, package
+resource inclusion, and build-artifact exclusions. `RELEASE.md` documents the
+maintainer build/upload workflow. Wheel and source archives must pass
+`twine check` and a clean local wheel installation before publication.
+PyPI rejected `0.1.0` because its filenames had previously been uploaded and
+then deleted. PyPI permanently reserves deleted filenames, so the pending
+release was advanced to `0.1.1`.
+
+### User documentation
+
+The README now documents PyPI, `pipx`, and editable source installation; current CLI options and examples; JSON output; updater limitations; scanner module development; project structure; authorization requirements; and heuristic-result limitations. The original project badges and screenshot are retained.
 
 ## Recommended Development Priorities
 
@@ -264,6 +323,7 @@ The most valuable refactor is not adding more scanner modules. It is building a 
 - Detection confidence: variable and primarily heuristic
 - Testability: low until transport and target handling are decoupled
 - Highest technical risk: uncontrolled nested concurrency and inconsistent networking semantics
-- Highest product risk: presenting heuristic signals as vulnerabilities without normalized confidence and evidence
+- Highest product risk: running intrusive/exploit checks by default without the
+  operator understanding their potential side effects
 
 R-AScan already demonstrates broad scanner coverage and a useful drop-in module model. The next engineering milestone should be reliability and evidence quality, followed by additional vulnerability coverage.

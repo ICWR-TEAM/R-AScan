@@ -8,6 +8,7 @@ from r_ascan.module.other import Other
 class WebExtractor:
     def __init__(self, args):
         self.target = args.target
+        self.custom_port = args.port
         self.headers = HTTP_HEADERS
         self.timeout = DEFAULT_TIMEOUT
         self.DEFAULT_PORTS = [80, 443, 8080, 8443, 8000, 3000, 3001]
@@ -99,7 +100,8 @@ class WebExtractor:
 
     def run(self):
         target = self.target
-        open_ports = [port for port in self.DEFAULT_PORTS if self.is_port_open(target, port)]
+        ports = [self.custom_port] if self.custom_port else self.DEFAULT_PORTS
+        open_ports = [port for port in ports if self.is_port_open(target, port)]
         scanned_services = []
         colored_module = self.printer.color_text(self.module_name, "cyan")
 

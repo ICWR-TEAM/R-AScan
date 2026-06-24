@@ -26,8 +26,6 @@ class SSTIScanner:
         "/", "/search", "/view", "/page", "/profile", "/comment", "/feedback", "/api", "/form"
     ]
 
-    STRICT_INDICATORS = ["49", "14", "0", "1337"]
-
     def __init__(self, args):
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.threads = args.threads
@@ -105,9 +103,22 @@ class SSTIScanner:
         return None
 
     def _match_output(self, payload, response_text):
-        for val in self.STRICT_INDICATORS:
-            if val in response_text:
-                return val
+        expected = {
+            "{{7*7}}": "49",
+            "${7*7}": "49",
+            "#{7*7}": "49",
+            "<%= 7*7 %>": "49",
+            "${{7*7}}": "49",
+            "{{7+7}}": "14",
+            "{{7-7}}": "0",
+            "{{7/1}}": "7",
+            "{{1337*0}}": "0",
+            "{% print(7*7) %}": "49",
+            "#set($x=7*7)$x": "49",
+            "${@print(7*7)}": "49",
+        }.get(payload)
+        if expected and expected in response_text and payload not in response_text:
+            return expected
         return None
 
 def scan(args=None):

@@ -41,7 +41,6 @@ class XSSScanner:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 futures = {
                     executor.submit(self.test_reflected, base): "reflected",
-                    executor.submit(self.test_stored, base): "stored",
                 }
                 for future in as_completed(futures):
                     res = future.result()
@@ -123,28 +122,6 @@ class XSSScanner:
             pass
         return result
 
-    def test_stored(self, base):
-        result = {"stored": {"submitted": False, "vulnerable": False, "url": ""}}
-        try:
-            post_url = base.rstrip("/") + "/post"
-            data = {"comment": self.payload}
-            post_resp = requests.post(post_url, headers=self.headers, data=data, timeout=self.timeout, verify=False)
-            result["stored"]["submitted"] = post_resp.ok
-            if post_resp.ok:
-                get_resp = requests.get(post_url, headers=self.headers, timeout=self.timeout, verify=False)
-                is_vuln = self.payload in get_resp.text
-                if self.verbose or is_vuln:
-                    colored_module = self.printer.color_text(self.module_name, "cyan")
-                    colored_url = self.printer.color_text(post_url, "yellow")
-                    status = self.printer.color_text("Vuln", "green") if is_vuln else self.printer.color_text("Not Vuln", "red")
-                    print(f"[*] [Module: {colored_module}] [{status}] [Stored XSS] [URL: {colored_url}]")
-                if is_vuln:
-                    result["stored"]["vulnerable"] = True
-                    result["stored"]["url"] = post_url
-        except:
-            pass
-        return result
-
     def test_dom(self, base):
         result = {"dom": {"vulnerable": False, "scripts": []}}
         try:
@@ -157,7 +134,8 @@ class XSSScanner:
                 if any(k in content for k in ["document.location", "document.write", "innerHTML", "eval(", "window.location"]):
                     dom_scripts.append(content.strip()[:100])
             if dom_scripts:
-                result["dom"]["vulnerable"] = True
+                result["dom"]["vulnerable"] = False
+                result["dom"]["potential"] = True
                 result["dom"]["scripts"] = dom_scripts
             if self.verbose or dom_scripts:
                 colored_module = self.printer.color_text(self.module_name, "cyan")

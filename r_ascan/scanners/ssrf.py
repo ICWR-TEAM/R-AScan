@@ -1,4 +1,5 @@
 import os
+import secrets
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from r_ascan.config import HTTP_HEADERS, DEFAULT_TIMEOUT
@@ -9,7 +10,11 @@ class SSRFScanner:
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.threads = args.threads
         self.verbose = args.verbose
-        self.payloads = ["http://127.0.0.1", "http://localhost"]
+        self.marker = secrets.token_hex(6)
+        self.payloads = [
+            f"http://127.0.0.1/?r_ascan={self.marker}",
+            f"http://localhost/?r_ascan={self.marker}",
+        ]
         self.params = ["url", "next", "redirect", "dest", "target"]
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
         self.printer = Other()
@@ -30,8 +35,14 @@ class SSRFScanner:
     def check_payload(self, full_url):
         try:
             r = requests.get(full_url, headers=HTTP_HEADERS, timeout=DEFAULT_TIMEOUT, verify=False)
-            if "localhost" in r.text or "127.0.0.1" in r.text:
-                return full_url
+            # A reflected URL is not proof of a server-side request. Without an
+            # out-of-band callback, only report a potential signal when content
+            # characteristic of a loopback service appears without our canary.
+            text = r.text.lower()
+            reflected = self.marker in text
+            signatures = ("connection refused", "localhost", "127.0.0.1")
+            if not reflected and any(value in text for value in signatures):
+                return {"url": full_url, "confidence": "low", "status": "potential"}
             if self.verbose:
                 self.print_status("-", "Not Vuln", full_url)
         except Exception as e:
@@ -57,11 +68,11 @@ class SSRFScanner:
             for future in as_completed(tasks):
                 result = future.result()
                 if result:
-                    self.print_status("+", "Vuln", result)
-                    return [{"vulnerable": True, "payload": result}]
+                    self.print_status("+", "Potential", result["url"])
+                    return [{"vulnerable": False, **result}]
 
         self.print_status("*", "Not Vuln", "No SSRF detected")
-        return [{"vulnerable": False}]
+        return [{"vulnerable": False, "details": "No non-reflection SSRF signal detected"}]
 
 def scan(args=None):
     return SSRFScanner(args).run()

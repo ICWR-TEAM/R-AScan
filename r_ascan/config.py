@@ -3,9 +3,8 @@ import os
 BASE_DIR = os.path.dirname(__file__)
 
 HTTP_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (R-AScan/1.0)",
-    "Authorization": "Bearer <token>",
-    "Cookie": "Cookie"
+    "User-Agent": "R-AScan/0.1.1 (+https://github.com/ICWR-TEAM/R-AScan)",
+    "Accept": "*/*",
 }
 
 DEFAULT_TIMEOUT = 5

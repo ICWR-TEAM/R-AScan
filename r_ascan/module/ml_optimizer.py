@@ -1,99 +1,66 @@
+"""Deterministic report optimization and risk prioritization.
+
+The historical per-scan ML model trained and predicted on the same samples.
+This replacement adjusts normalized findings using explicit, auditable rules.
+"""
+
+from __future__ import annotations
+
 import json
-import os
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
-from r_ascan.module.other import Other
+from pathlib import Path
+from typing import Any
 
-class MLOptimizer:
-    def __init__(self, args):
-        self.args = args
-        self.output_path = args.output or f"scan_output-{args.target}.json"
-        self.module_name = os.path.splitext(os.path.basename(__file__))[0]
-        self.printer = Other()
-        self.model = RandomForestClassifier()
-        self.vectorizer = TfidfVectorizer()
+SEVERITY_SCORE = {"info": 0.0, "low": 2.0, "medium": 5.0, "high": 8.0, "critical": 10.0}
+CONFIDENCE_FACTOR = {"none": 0.0, "low": 0.45, "medium": 0.7, "high": 0.9, "confirmed": 1.0}
+STATUS_FACTOR = {"informational": 0.25, "potential": 0.65, "confirmed": 1.0}
 
-    def extract_features(self, entries):
-        texts = []
-        labels = []
-        for entry in entries:
-            module_name = list(entry.keys())[0]
-            result = entry[module_name]
-            text = json.dumps(result)
-            label = self.auto_label(result)
-            texts.append(text)
-            labels.append(label)
-        return texts, labels
 
-    def auto_label(self, result):
-        if isinstance(result, dict):
-            flat = json.dumps(result).lower()
-            if '"vulnerable": true' in flat:
-                return 1
-            if "missing" in result and isinstance(result["missing"], list):
-                if len(result["missing"]) >= 3:
-                    return 1
-            if "curl" in flat and ("chunked" in flat or "payload" in flat):
-                return 1
-            if "match" in flat and "payload" in flat and "7*7" in flat:
-                return 1
-            if "status_line" in flat and "429" in flat and "anomaly" in flat:
-                return 1
-            if "findings" in result:
-                for finding in result["findings"]:
-                    if finding.get("vuln") is True:
-                        return 1
-            if "potential_bac" in result:
-                if any(r.get("status") in [200, 201, 202, 203, 204, 206, 207] for r in result["potential_bac"]):
-                    return 1
-            if "access_control_results" in result:
-                for r in result["access_control_results"]:
-                    if isinstance(r, dict) and r.get("status_code") in [200, 201, 202, 204]:
-                        return 1
-            if any(k in flat for k in ["injection", "leak", "anomaly", "payload"]):
-                return 1
-        elif isinstance(result, list):
-            for item in result:
-                if self.auto_label(item) == 1:
-                    return 1
-        return 0
+def optimize_report(report: dict[str, Any]) -> dict[str, Any]:
+    findings = []
+    for result in report.get("results", []):
+        for finding in result.get("findings", []):
+            base = SEVERITY_SCORE.get(finding.get("severity", "info"), 0.0)
+            confidence = CONFIDENCE_FACTOR.get(finding.get("confidence", "low"), 0.45)
+            status = STATUS_FACTOR.get(finding.get("status", "potential"), 0.65)
+            score = round(base * confidence * status, 1)
+            finding["score"] = score
+            finding["priority"] = (
+                "urgent" if score >= 8
+                else "high" if score >= 5
+                else "medium" if score >= 2
+                else "low"
+            )
+            findings.append(finding)
+        result["summary"]["risk_score"] = round(
+            min(100.0, sum(item.get("score", 0) for item in result.get("findings", []))),
+            1,
+        )
 
-    def train_model(self, texts, labels):
-        X = self.vectorizer.fit_transform(texts)
-        self.model.fit(X, labels)
+    findings.sort(key=lambda item: (-item.get("score", 0), item.get("scanner_id", ""), item.get("id", "")))
+    report["optimization"] = {
+        "engine": "deterministic-risk-v1",
+        "finding_count": len(findings),
+        "prioritized_finding_ids": [item["id"] for item in findings],
+        "risk_score": round(min(100.0, sum(item.get("score", 0) for item in findings)), 1),
+    }
+    report["summary"]["risk_score"] = report["optimization"]["risk_score"]
+    return report
 
-    def predict(self, texts):
-        X = self.vectorizer.transform(texts)
-        return self.model.predict_proba(X)
 
-    def run(self):
-        if not os.path.exists(self.output_path):
-            print(f"[!] Scan result not found: {self.output_path}")
-            return
+def optimize_file(path: str | Path) -> dict[str, Any]:
+    output_path = Path(path)
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    optimize_report(report)
+    output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return report
 
-        with open(self.output_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        entries = data.get("result", [])
-        texts, labels = self.extract_features(entries)
-
-        if len(set(labels)) < 2:
-            print("[!] Not enough variance in data for ML training.")
-            return
-
-        self.train_model(texts, labels)
-        probabilities = self.predict(texts)
-        colored_module = self.printer.color_text(self.module_name, "cyan")
-        print(f"[*] [Module: {colored_module}] [ML Optimization Results]")
-        for idx, entry in enumerate(entries):
-            module_name = list(entry.keys())[0]
-            prob = probabilities[idx][1]
-            label = "Vuln-Likely" if prob > 0.7 else "Safe-Likely"
-            confidence = f"{prob * 100:.2f}%"
-            colored_name = self.printer.color_text(module_name, "cyan")
-            colored_label = self.printer.color_text(label, "green" if label == "Vuln-Likely" else "red")
-            print(f"[+] [Module: {colored_name}] — [Result: {colored_label} ({confidence})]")
 
 def scan(args=None):
-    return MLOptimizer(args).run()
+    path = Path(args.output) if args.output else Path(f"scan_output-{args.target}.json")
+    report = optimize_file(path)
+    print(
+        "[*] [Optimizer] "
+        f"[Engine: {report['optimization']['engine']}] "
+        f"[Risk: {report['optimization']['risk_score']}/100]"
+    )
+    return report["optimization"]

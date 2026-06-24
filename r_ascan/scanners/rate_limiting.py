@@ -6,7 +6,7 @@ class RateLimitingScanner:
     def __init__(self, args, test_path="/", max_requests=20, interval=1):
         self.target = f"{args.target}:{args.port}" if args.port else args.target
         self.verbose = args.verbose
-        self.test_path = test_path
+        self.test_path = args.path if args.path and args.path != "/" else test_path
         self.max_requests = max_requests
         self.interval = interval
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
@@ -40,6 +40,11 @@ class RateLimitingScanner:
             "requests_made": self.max_requests,
             "status_codes": statuses,
             "rate_limited": rate_limited,
+            "conclusion": (
+                "rate limiting observed"
+                if rate_limited
+                else "not confirmed; a generic GET endpoint is not sufficient to prove absence"
+            ),
             "rate_limit_status_codes": [s for s in statuses if s in [429, 503]],
         }
 
