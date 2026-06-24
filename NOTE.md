@@ -243,14 +243,14 @@ harnesses remain to be added.
 
 Packaging metadata and the README now consistently require Python 3.10+. README installation and usage examples use the packaged `R-AScan` entry point instead of the removed legacy `R-AScan.py` command.
 
-Release `0.1.1` metadata is prepared in `pyproject.toml` with SPDX licensing,
+Release `0.0.15` metadata is prepared in `pyproject.toml` with SPDX licensing,
 project URLs, classifiers, keywords, synchronized runtime dependencies, package
 resource inclusion, and build-artifact exclusions. `RELEASE.md` documents the
 maintainer build/upload workflow. Wheel and source archives must pass
 `twine check` and a clean local wheel installation before publication.
 PyPI rejected `0.1.0` because its filenames had previously been uploaded and
-then deleted. PyPI permanently reserves deleted filenames, so the pending
-release was advanced to `0.1.1`.
+then deleted. PyPI permanently reserves deleted filenames. The maintainer chose
+`0.0.15` for the pending release.
 
 ### User documentation
 

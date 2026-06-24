@@ -3,7 +3,7 @@ import os
 BASE_DIR = os.path.dirname(__file__)
 
 HTTP_HEADERS = {
-    "User-Agent": "R-AScan/0.1.1 (+https://github.com/ICWR-TEAM/R-AScan)",
+    "User-Agent": "R-AScan/0.0.15 (+https://github.com/ICWR-TEAM/R-AScan)",
     "Accept": "*/*",
 }
 
