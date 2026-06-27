@@ -1,4 +1,5 @@
 import requests, re, json, os, random
+from difflib import SequenceMatcher
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from r_ascan.config import HTTP_HEADERS, DEFAULT_TIMEOUT, COMMON_ENDPOINTS
 from r_ascan.module.other import Other
@@ -35,7 +36,8 @@ class BrokenAccessControlScanner:
                 print(f"[*] [Module: {colored_module}] [Baseline: {colored_proto} {fake_path}] [Status: {colored_code}] [Length: {colored_len}]")
                 baseline[proto] = {
                     "status_code": status_code,
-                    "content_length": content_length
+                    "content_length": content_length,
+                    "body": r.text,
                 }
             except:
                 continue
@@ -46,6 +48,25 @@ class BrokenAccessControlScanner:
         if status_code != base["status_code"]:
             return False
         return abs(content_length - base["content_length"]) < 20
+
+    def _looks_like_accessible_resource(self, status, body, headers):
+        if status not in [200, 201, 202, 203, 204, 206, 207]:
+            return False
+        if status == 204:
+            return True
+        content_type = headers.get("Content-Type", "").lower()
+        lowered = body[:2000].lower()
+        denial_terms = ("login", "sign in", "unauthorized", "forbidden", "access denied", "not found")
+        if any(term in lowered for term in denial_terms):
+            return False
+        return bool(body.strip()) or "json" in content_type
+
+    def _body_similarity(self, proto, body):
+        base = self.baseline.get(proto, {})
+        baseline_body = base.get("body", "")
+        if not baseline_body or not body:
+            return 0.0
+        return SequenceMatcher(None, baseline_body[:4000], body[:4000]).ratio()
 
     def run(self):
         self._collect_endpoints()
@@ -63,7 +84,7 @@ class BrokenAccessControlScanner:
                 result = future.result()
                 if not result:
                     continue
-                method, url, status, proto, length = result
+                method, url, status, proto, length, body, headers = result
                 path = url[len(f"http://{self.target}"):] if url.startswith(f"http://{self.target}") else url[len(f"https://{self.target}"):]                
                 colored_module = self.printer.color_text(self.module_name, "cyan")
                 colored_method = self.printer.color_text(method, "magenta")
@@ -72,13 +93,20 @@ class BrokenAccessControlScanner:
                     str(status), "green" if status in [200, 201, 202, 203, 204, 206, 207] else "red"
                 )
                 is_similar = self._is_similar_to_baseline(proto, status, length)
-                if self.verbose or (status in [200, 201, 202, 203, 204, 206, 207] and not is_similar):
+                similarity = self._body_similarity(proto, body)
+                accessible = self._looks_like_accessible_resource(status, body, headers)
+                potential = accessible and not is_similar and similarity < 0.90
+                if self.verbose or potential:
                     print(f"[*] [Module: {colored_module}] [Method: {colored_method}] [Path: {colored_path}] [Status: {colored_status}]")
-                if status in [200, 201, 202, 203, 204, 206, 207] and not is_similar:
+                if potential:
                     bac_results.append({
                         "method": method,
                         "path": path,
-                        "status": status
+                        "status": "potential",
+                        "status_code": status,
+                        "confidence": "low",
+                        "baseline_similarity": round(similarity, 3),
+                        "note": "Unauthenticated access signal only; confirm with authenticated role comparison."
                     })
         return {
             "target": self.target,
@@ -90,7 +118,7 @@ class BrokenAccessControlScanner:
     def _request(self, method, url, proto):
         try:
             res = self.session.request(method, url, json={}, timeout=DEFAULT_TIMEOUT, allow_redirects=False, verify=False)
-            return (method, url, res.status_code, proto, len(res.content))
+            return (method, url, res.status_code, proto, len(res.content), res.text, dict(res.headers))
         except:
             return None
 

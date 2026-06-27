@@ -10,8 +10,10 @@ class HTTPSmugglingScanner:
         self.custom_port = args.port
         self.verbose = self.args.verbose
         self.threads = self.args.threads
-        self.payloads = json.load(open(HTTP_SMUGGLING_PAYLOAD))
-        self.paths = [line.strip() for line in open(DIRECTORIES) if line.strip()]
+        with open(HTTP_SMUGGLING_PAYLOAD) as payload_file:
+            self.payloads = json.load(payload_file)
+        with open(DIRECTORIES) as directories_file:
+            self.paths = [line.strip() for line in directories_file if line.strip()]
         self.printer = Other()
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
 
@@ -28,19 +30,29 @@ class HTTPSmugglingScanner:
         except Exception as e:
             return f"ERROR: {e}"
 
-    def strict_validation(self, response, status_line):
+    def strict_validation(self, response, control_response=""):
         if not response or response.startswith("ERROR"):
-            return False
+            return False, "no response"
         if response.lower().count("http/1.1") >= 2:
-            return True
+            if control_response.lower().count("http/1.1") < 2:
+                return True, "multiple HTTP responses in smuggling probe only"
+            return False, "multiple responses also seen in control"
         lines = response.splitlines()
         for i, line in enumerate(lines):
             if line.startswith("HTTP/1.1 200") and i > 0:
-                return True
-        suspicious_keywords = ["flag", "/admin", "/dashboard", "confidential", "secret"]
-        if any(key in response.lower() for key in suspicious_keywords):
-            return True
-        return False
+                control_lines = control_response.splitlines()
+                if not any(control_line.startswith("HTTP/1.1 200") and j > 0 for j, control_line in enumerate(control_lines)):
+                    return True, "secondary HTTP 200 response in smuggling probe only"
+                return False, "secondary HTTP 200 also seen in control"
+        return False, "no desync-specific response pattern"
+
+    def build_control_request(self, path):
+        return (
+            f"GET {path} HTTP/1.1\r\n"
+            f"Host: {self.target}\r\n"
+            "User-Agent: R-AScan-control\r\n"
+            "Connection: close\r\n\r\n"
+        )
 
     def build_curl_command(self, raw_data, use_ssl, port):
         lines = raw_data.strip().split("\r\n")
@@ -68,9 +80,10 @@ class HTTPSmugglingScanner:
         name = payload_obj.get("name", "Unnamed")
         raw_template = payload_obj.get("raw", "")
         raw_built = raw_template.replace("{host}", self.target).replace("{path}", path)
+        control_response = self.send_raw(self.build_control_request(path), port, use_ssl)
         response = self.send_raw(raw_built, port, use_ssl)
         status_line = response.splitlines()[0] if "HTTP" in response else "NO RESPONSE"
-        valid = self.strict_validation(response, status_line)
+        valid, reason = self.strict_validation(response, control_response)
         proto = "HTTPS" if use_ssl else "HTTP"
         status = "Vuln" if valid else "Not Vuln"
         prefix = "[+]" if valid else "[*]"
@@ -97,7 +110,9 @@ class HTTPSmugglingScanner:
             "payload_name": name,
             "path": path,
             "status_line": status_line,
-            "anomaly": valid
+            "anomaly": valid,
+            "confidence": "medium" if valid else "none",
+            "validation": reason,
         }
 
         if valid:

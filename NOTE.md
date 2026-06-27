@@ -59,8 +59,14 @@ Scanner module
 - `r_ascan/core/normalize.py`: adapter from heterogeneous legacy scanner payloads to the common finding schema.
 - `r_ascan/module/ml_optimizer.py`: deterministic confidence/status/severity risk scoring.
 - `r_ascan/reporting/html.py`: self-contained, print-friendly HTML rendering
-  from the normalized report using an absolute black-and-white palette on a
-  white background.
+  from the normalized report using an external resource template with an
+  absolute black-and-white palette on a white background.
+- `r_ascan/resources/report_template.html`: replace-token PTES-style HTML
+  report template used by the renderer so report structure and styling are not
+  hardcoded in Python. The findings summary table is organized around Title,
+  CVSS v3.1 Score, CWE/CVE, Affected Host, Summary, Impact, Remediation, POC,
+  and Evidence. The renderer builds scanner-aware `curl` POC commands and
+  concise evidence summaries from normalized finding data.
 - `r_ascan/module/other.py`: terminal color formatting.
 
 ## Scanner Coverage
@@ -219,6 +225,26 @@ Several detectors rely on weak evidence:
 
 Baseline comparison, random canaries, content similarity, control requests, repeated confirmation, and evidence capture should be reusable framework services rather than scanner-specific code.
 
+Recent hardening reduced false positives in the noisiest legacy scanners:
+
+- `top_25_owasp_full_scanner.py` now uses per-scan canaries, stricter SQLi
+  error signatures, passwd-like LFI validation, redirect-header validation,
+  non-reflection RCE markers, and low-confidence potential status for weak
+  SSRF/XSS reflections.
+- `xss.py` now separates reflected payload markers from confirmed executable
+  SVG handler context, and DOM XSS signals require both a location-like source
+  and an HTML/JavaScript execution sink.
+- `broken_access_control.py` now stores baseline bodies, compares response
+  similarity, suppresses login/denial/not-found bodies, and reports only
+  low-confidence unauthenticated access signals that still require role
+  comparison.
+- `http_smuggler.py` now uses a control request and only reports desync-like
+  response patterns that are specific to the smuggling probe; keyword-only
+  responses are no longer treated as anomalies.
+- `ldap_injection.py` now compares wildcard injection attempts against a
+  random control login and only reports specific LDAP error differentials as
+  low-confidence potential findings.
+
 ### Self-update mechanism
 
 `--update` recursively downloads and overwrites package code directly from GitHub without signature/hash verification, staging, rollback, compatibility validation, or atomic replacement. It also updates more than scanner modules despite the CLI wording.
@@ -237,20 +263,21 @@ proof that a vulnerability exists.
 
 The repository now has `unittest` coverage for target parsing, scanner
 selection/mode enforcement, request budgets, result normalization,
-deterministic scoring, and safe HTML escaping. Mocked scanner tests,
-fixtures, CI, lint/type configuration, coverage targets, and integration
-harnesses remain to be added.
+deterministic scoring, safe HTML escaping, and false-positive hardening helper
+logic for XSS, HTTP smuggling, Top 25 LFI checks, broken access control, and
+LDAP injection. Broader mocked scanner tests, fixtures, CI, lint/type
+configuration, coverage targets, and integration harnesses remain to be added.
 
 Packaging metadata and the README now consistently require Python 3.10+. README installation and usage examples use the packaged `R-AScan` entry point instead of the removed legacy `R-AScan.py` command.
 
-Release `0.0.15` metadata is prepared in `pyproject.toml` with SPDX licensing,
+Release `0.0.16` metadata is prepared in `pyproject.toml` with SPDX licensing,
 project URLs, classifiers, keywords, synchronized runtime dependencies, package
 resource inclusion, and build-artifact exclusions. `RELEASE.md` documents the
 maintainer build/upload workflow. Wheel and source archives must pass
 `twine check` and a clean local wheel installation before publication.
 PyPI rejected `0.1.0` because its filenames had previously been uploaded and
 then deleted. PyPI permanently reserves deleted filenames. The maintainer chose
-`0.0.15` for the pending release.
+`0.0.16` for the pending release.
 
 ### User documentation
 

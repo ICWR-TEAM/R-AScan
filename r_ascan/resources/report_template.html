@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{REPORT_TITLE}}</title>
+<style>
+:root{--black:#000;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--white);color:var(--black);font:14px/1.5 system-ui,sans-serif}
+main{max-width:1320px;margin:auto;padding:32px}h1,h2,h3{margin:.2em 0}.muted{color:var(--black)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:24px 0}
+.card,details,.section{background:var(--white);border:1px solid var(--black);border-radius:0;padding:16px}
+.value{font-size:28px;font-weight:700;color:var(--black)}table{width:100%;border-collapse:collapse;background:var(--white);margin:12px 0 28px;border:1px solid var(--black)}
+th,td{padding:10px;border:1px solid var(--black);text-align:left;vertical-align:top}th{color:var(--black);background:var(--white)}
+.table-wrap{overflow:auto}.badge{display:inline-block;padding:2px 7px;border:1px solid var(--black);border-radius:0;font-weight:700;background:var(--white);color:var(--black)}
+.critical,.high,.medium,.low,.info{background:var(--white);color:var(--black)}details,.section{margin:10px 0}summary{cursor:pointer;font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--white);color:var(--black);border:1px solid var(--black);padding:12px;border-radius:0}code{color:var(--black)}
+@media print{body{background:var(--white);color:var(--black)}main{max-width:none;padding:0}details{break-inside:avoid}}
+</style>
+</head>
+<body><main>
+<h1>R-AScan Web Application Penetration Test Report</h1>
+<p class="muted">PTES-aligned technical report - Target: {{TARGET_LABEL}} - Mode: {{SCAN_MODE}} - Schema: {{SCHEMA_VERSION}}</p>
+<section class="grid">
+<div class="card"><div class="muted">Risk score</div><div class="value">{{RISK_SCORE}}/100</div></div>
+<div class="card"><div class="muted">Findings</div><div class="value">{{FINDING_COUNT}}</div></div>
+<div class="card"><div class="muted">Critical / High</div><div class="value">{{CRITICAL_COUNT}} / {{HIGH_COUNT}}</div></div>
+<div class="card"><div class="muted">Failed scanners</div><div class="value">{{FAILED_SCANNERS}}</div></div>
+</section>
+<section class="section">
+<h2>Executive Summary</h2>
+<p>This report summarizes automated R-AScan findings for the assessed target. Findings are normalized and prioritized from scanner evidence. Potential findings require manual validation before risk acceptance or remediation sign-off.</p>
+<p>Confirmed findings: {{CONFIRMED_COUNT}}. Potential findings: {{POTENTIAL_COUNT}}.</p>
+</section>
+<section class="section">
+<h2>Scope</h2>
+<table><tbody>
+<tr><th>Target</th><td>{{TARGET_LABEL}}</td></tr>
+<tr><th>Assessment Mode</th><td>{{SCAN_MODE}}</td></tr>
+<tr><th>Report Schema</th><td>{{SCHEMA_VERSION}}</td></tr>
+</tbody></table>
+</section>
+<section class="section">
+<h2>Methodology</h2>
+<p>The assessment follows a PTES-style structure: pre-engagement scope, intelligence gathering, threat modeling, vulnerability analysis, exploitation checks where enabled, evidence review, and reporting. R-AScan results are heuristic scanner outputs and should be reviewed with the captured evidence.</p>
+</section>
+<h2>Findings Summary</h2><div class="table-wrap"><table><thead><tr><th>Title</th><th>CVSS v3.1 Score</th><th>CWE/CVE</th><th>Affected Host</th><th>Summary</th><th>Impact</th><th>Remediation</th><th>POC</th><th>Evidence</th></tr></thead>
+<tbody>{{FINDING_ROWS}}</tbody></table></div>
+<h2>Detailed Findings</h2>{{EVIDENCE_DETAILS}}
+<h2>Scanner Execution</h2><div class="table-wrap"><table><thead><tr><th>Scanner</th><th>Mode</th><th>Status</th><th>Findings</th><th>Duration</th><th>Errors</th></tr></thead><tbody>{{SCANNER_ROWS}}</tbody></table></div>
+</main></body></html>

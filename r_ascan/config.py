@@ -12,6 +12,7 @@ COMMON_ENDPOINTS = os.path.join(BASE_DIR, 'resources', "common_endpoints.txt")
 DIRECTORIES = os.path.join(BASE_DIR, 'resources', "directories.txt")
 SENSITIVE_FILES = os.path.join(BASE_DIR, 'resources', "sensitive_files.txt")
 HTTP_SMUGGLING_PAYLOAD = os.path.join(BASE_DIR, 'resources', "http_smuggling_payloads.json")
+HTML_REPORT_TEMPLATE = os.path.join(BASE_DIR, 'resources', "report_template.html")
 
 PARAMS = {
     "SQLi": ["id", "page", "dir", "search", "category", "file", "class", "url", "news", "item", "menu", "lang", "name", "ref", "title", "view", "topic", "thread", "type", "date", "form", "join", "main", "nav", "region"],

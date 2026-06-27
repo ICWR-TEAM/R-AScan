@@ -2,7 +2,7 @@
 
 PyPI filenames and versions are immutable. Version `0.1.0` was previously
 uploaded and deleted, so it cannot be reused even though it is absent from the
-visible release history. This release uses `0.0.15`.
+visible release history. This release uses `0.0.16`.
 
 ## Verify
 
@@ -15,7 +15,6 @@ python3 -m unittest discover -s tests -v
 
 ```bash
 python3 -m pip install --upgrade build twine
-rm -rf build dist R_AScan.egg-info
 python3 -m build
 python3 -m twine check dist/*
 ```
@@ -23,8 +22,8 @@ python3 -m twine check dist/*
 Expected artifacts:
 
 ```text
-dist/r_ascan-0.0.15-py3-none-any.whl
-dist/r_ascan-0.0.15.tar.gz
+dist/r_ascan-0.0.16-py3-none-any.whl
+dist/r_ascan-0.0.16.tar.gz
 ```
 
 ## Upload
@@ -39,8 +38,8 @@ Upload with an explicit token username:
 python3 -m twine upload \
   --username __token__ \
   --verbose \
-  dist/r_ascan-0.0.15-py3-none-any.whl \
-  dist/r_ascan-0.0.15.tar.gz
+  dist/r_ascan-0.0.16-py3-none-any.whl \
+  dist/r_ascan-0.0.16.tar.gz
 ```
 
 Enter the complete `pypi-...` token when prompted. Do not put the token in the
@@ -51,7 +50,7 @@ command line, repository, or shell history.
 ```bash
 python3 -m venv /tmp/r-ascan-release-test
 source /tmp/r-ascan-release-test/bin/activate
-python -m pip install --upgrade R-AScan==0.0.15
+python -m pip install --upgrade R-AScan==0.0.16
 R-AScan --help
 R-AScan --list-scanners
 ```

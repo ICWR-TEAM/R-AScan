@@ -1,4 +1,5 @@
-import requests, os, re
+import html
+import requests, os, re, secrets
 from urllib.parse import urlencode, urljoin
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,7 +11,8 @@ class XSSScanner:
 
     def __init__(self, args):
         self.target = f"{args.target}:{args.port}" if args.port else args.target
-        self.payload = "<script>alert('xss')</script>"
+        self.marker = f"rascan_xss_{secrets.token_hex(6)}"
+        self.payload = f'"><svg data-rascan="{self.marker}" onload=alert(1)>'
         self.headers = HTTP_HEADERS
         self.timeout = DEFAULT_TIMEOUT
         self.module_name = os.path.splitext(os.path.basename(__file__))[0]
@@ -74,7 +76,8 @@ class XSSScanner:
             for param in total_params:
                 test_url = base + ("&" if "?" in base else "?") + urlencode({param: self.payload})
                 resp = requests.get(test_url, headers=self.headers, timeout=self.timeout, verify=False, allow_redirects=True)
-                is_vuln = self.payload in resp.text
+                evidence = self._classify_reflection(resp.text)
+                is_vuln = evidence["status"] == "confirmed"
                 if self.verbose or is_vuln:
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_url = self.printer.color_text(resp.url, "yellow")
@@ -83,7 +86,16 @@ class XSSScanner:
                 if is_vuln:
                     result["reflected"]["vulnerable"] = True
                     result["reflected"]["url"] = resp.url
+                    result["reflected"]["confidence"] = "medium"
+                    result["reflected"]["evidence"] = evidence
                     break
+                if evidence["status"] == "potential" and not result["reflected"].get("potential"):
+                    result["reflected"].update({
+                        "potential": True,
+                        "url": resp.url,
+                        "confidence": "low",
+                        "evidence": evidence,
+                    })
 
             soup = BeautifulSoup(r.text, "html.parser")
             forms = soup.find_all("form")
@@ -107,7 +119,8 @@ class XSSScanner:
                 else:
                     resp = requests.post(action_url, headers=self.headers, data=params, timeout=self.timeout, verify=False)
 
-                is_vuln = self.payload in resp.text
+                evidence = self._classify_reflection(resp.text)
+                is_vuln = evidence["status"] == "confirmed"
                 if self.verbose or is_vuln:
                     colored_module = self.printer.color_text(self.module_name, "cyan")
                     colored_url = self.printer.color_text(resp.url, "yellow")
@@ -117,10 +130,33 @@ class XSSScanner:
                 if is_vuln:
                     result["reflected"]["vulnerable"] = True
                     result["reflected"]["url"] = resp.url
+                    result["reflected"]["confidence"] = "medium"
+                    result["reflected"]["evidence"] = evidence
                     break
+                if evidence["status"] == "potential" and not result["reflected"].get("potential"):
+                    result["reflected"].update({
+                        "potential": True,
+                        "url": resp.url,
+                        "confidence": "low",
+                        "evidence": evidence,
+                    })
         except:
             pass
         return result
+
+    def _classify_reflection(self, text):
+        raw_marker = self.marker in text
+        escaped_marker = html.escape(self.marker) in text
+        escaped_payload = html.escape(self.payload, quote=True) in text
+        executable_pattern = re.compile(
+            rf"<svg\b[^>]*data-rascan=[\"']?{re.escape(self.marker)}[\"']?[^>]*\bonload\s*=",
+            re.IGNORECASE,
+        )
+        if executable_pattern.search(text):
+            return {"status": "confirmed", "reason": "payload reflected in executable svg onload context"}
+        if raw_marker or escaped_marker or escaped_payload:
+            return {"status": "potential", "reason": "payload marker reflected without confirmed executable context"}
+        return {"status": "none", "reason": "payload marker not reflected"}
 
     def test_dom(self, base):
         result = {"dom": {"vulnerable": False, "scripts": []}}
@@ -131,7 +167,7 @@ class XSSScanner:
             dom_scripts = []
             for script in scripts:
                 content = script.string or ""
-                if any(k in content for k in ["document.location", "document.write", "innerHTML", "eval(", "window.location"]):
+                if self._has_dom_xss_sink(content):
                     dom_scripts.append(content.strip()[:100])
             if dom_scripts:
                 result["dom"]["vulnerable"] = False
@@ -143,6 +179,12 @@ class XSSScanner:
         except:
             pass
         return result
+
+    def _has_dom_xss_sink(self, content):
+        source = any(k in content for k in ["location.search", "location.hash", "document.URL", "document.location", "window.location"])
+        sink = any(k in content for k in ["document.write", "innerHTML", "outerHTML", "insertAdjacentHTML", "eval("])
+        sanitizer = any(k in content for k in ["textContent", "innerText", "encodeURIComponent", "DOMPurify", "sanitize"])
+        return source and sink and not sanitizer
 
 def scan(args=None):
     return XSSScanner(args).run()
