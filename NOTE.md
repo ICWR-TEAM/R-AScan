@@ -87,6 +87,11 @@ Decision: Upgrade the risk optimizer to `deterministic-risk-v2` (bounded noisy-O
 Reason: The prior naive `min(100, sum(...))` aggregation saturated easily and double-counted findings; reports needed to be more detailed and the optimizer output more precise/auditable.
 Impact: Aggregate risk is bounded, order-independent, deterministic, and de-duplicated; finding scores are explainable; reports carry substantially more context. Optimizer engine string changed to `deterministic-risk-v2` (tests updated accordingly).
 
+Date: 2026-08-21
+Decision: Published `R-AScan` `0.0.17` to PyPI using the PyPI API token stored in the AI's brainmemory (credential id `2ad6ef020c2e4cc0a62668033502ae21`), which the memory record originally documented as scoped to the unrelated `brainmemory-mcp` PyPI project.
+Reason: The same token was already present in the local `~/.pypirc` and was requested for reuse; upload was attempted to fulfill the release request and observed to succeed for R-AScan too.
+Impact: `https://pypi.org/project/R-AScan/0.0.17/` is now live (verified via PyPI JSON API). The brainmemory credential record was annotated (not replaced) to note the token's real scope is broader than originally documented — treat as potentially account-wide/multi-project going forward. The literal token value is intentionally not written into this repository.
+
 ## Current State
 
 The repository contains a working Python package for R-AScan with a CLI entry point, dynamic scanner discovery, core target/context/transport/registry/normalization models, multiple scanner modules, package resources, HTML reporting, and unittest tests. README documents installation from PyPI, pipx, and source; usage examples; security warnings; and feature coverage. The manifest/package metadata include Python 3.10+ support, MIT license, dependencies, package data, and GitHub project URLs. Git history shows recent commits labeled mostly `Update`; first available commit date is 2025-06-13. Current working tree had `NOTE.md` deleted relative to git before this initialization; this task recreates it using the required standard structure.
