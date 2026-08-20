@@ -24,6 +24,19 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(len(observations), 1)
 
+    def test_finding_includes_owasp_cvss_and_references(self):
+        metadata = ScannerMetadata("sqli", "SQL Injection", "injection")
+        findings, _, _ = normalize_result(
+            metadata,
+            self.target,
+            {"vulnerable": True, "url": "https://example.com:8443/?id=1", "payload": "'"},
+        )
+        value = findings[0].as_dict()
+        self.assertEqual(value["owasp"], "A03:2021-Injection")
+        self.assertTrue(value["cvss_vector"].startswith("CVSS:3.1/"))
+        self.assertGreater(value["cvss_score"], 0)
+        self.assertTrue(any("cwe.mitre.org" in ref for ref in value["references"]))
+
     def test_security_headers_become_findings(self):
         metadata = ScannerMetadata("security_headers", "Security Headers", "configuration")
         findings, _, _ = normalize_result(

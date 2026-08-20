@@ -4,8 +4,10 @@ import argparse
 import importlib.util
 import json
 import sys
+import threading
 import time
 import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
@@ -107,6 +109,12 @@ class RAScan:
             if self.target else []
         )
         self.results: list[dict[str, Any]] = []
+        # Serializes interleaved scanner output when scanners run concurrently.
+        self._print_lock = threading.Lock()
+
+    def _log(self, message: str) -> None:
+        with self._print_lock:
+            print(message)
 
     def _headers(self) -> dict[str, str]:
         headers = merge_headers(
@@ -177,9 +185,13 @@ class RAScan:
     def scan_module(self, path: Path, module: ModuleType, metadata: object) -> dict[str, Any]:
         started_at = utc_now()
         started = time.monotonic()
-        initial_requests = self.context.budget.count if self.context else 0
+        if self.context:
+            # Attribute requests issued on this worker thread to this scanner,
+            # keeping per-scanner counts precise even when scanners run in
+            # parallel and share the global request budget.
+            self.context.budget.begin_scope()
         colored = Other().color_text(metadata.id, "cyan")
-        print(f"[*] [Module: {colored}] [Started Scan] [Mode: {metadata.mode}]")
+        self._log(f"[*] [Module: {colored}] [Started Scan] [Mode: {metadata.mode}]")
         try:
             scan = getattr(module, "scan", None)
             if not callable(scan):
@@ -189,7 +201,7 @@ class RAScan:
             status = "completed"
             findings, observations, errors = normalize_result(metadata, self.target, data)
             if self.args.verbose:
-                print(json.dumps(data, indent=2, default=str))
+                self._log(json.dumps(data, indent=2, default=str))
         except KeyboardInterrupt:
             if self.context:
                 self.context.budget.cancel()
@@ -199,12 +211,10 @@ class RAScan:
             findings = []
             observations = []
             errors = [{"type": type(exc).__name__, "message": str(exc)}]
-            print(f"[-] [Error in {path.name}: {errors[0]['type']}: {errors[0]['message']}]")
+            self._log(f"[-] [Error in {path.name}: {errors[0]['type']}: {errors[0]['message']}]")
 
         duration_ms = round((time.monotonic() - started) * 1000)
-        request_count = (
-            self.context.budget.count - initial_requests if self.context else 0
-        )
+        request_count = self.context.budget.scope_count() if self.context else 0
         return ScannerResult(
             scanner=metadata,
             status=status,
@@ -221,6 +231,43 @@ class RAScan:
                 "risk_score": round(sum(item.score for item in findings), 1),
             },
         ).as_dict()
+
+    def _scanner_worker_count(self, runnable_count: int) -> int:
+        if runnable_count <= 0:
+            return 1
+        requested = getattr(self.args, "scanner_workers", 0) or 0
+        # Auto mode overlaps enough scanners to keep the request semaphore busy
+        # without unbounded fan-out; an explicit value always wins.
+        default = max(self.args.threads, 4)
+        workers = requested if requested > 0 else default
+        return max(1, min(workers, runnable_count))
+
+    def _run_scanners(
+        self,
+        runnable: list[tuple[Path, ModuleType, object]],
+        workers: int,
+    ) -> list[dict[str, Any]]:
+        if workers <= 1 or len(runnable) <= 1:
+            return [self.scan_module(path, module, metadata) for path, module, metadata in runnable]
+
+        ordered: list[dict[str, Any] | None] = [None] * len(runnable)
+        executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="rascan-scanner")
+        future_index = {
+            executor.submit(self.scan_module, path, module, metadata): index
+            for index, (path, module, metadata) in enumerate(runnable)
+        }
+        try:
+            for future in as_completed(future_index):
+                ordered[future_index[future]] = future.result()
+        except KeyboardInterrupt:
+            if self.context:
+                self.context.budget.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        else:
+            executor.shutdown(wait=True)
+        # Preserve deterministic discovery order regardless of completion order.
+        return [item for item in ordered if item is not None]
 
     def run_all(self) -> Path | None:
         if self.args.update:
@@ -252,18 +299,21 @@ class RAScan:
             raise RuntimeError("no scanners matched the requested filters")
         skipped = len(catalog) - len(runnable)
 
+        workers = self._scanner_worker_count(len(runnable))
         print(
             f"[*] [Starting scan on: {Other().color_text(self.target.authority, 'yellow')}] "
-            f"[Mode: {self.args.mode}] [Scanners: {len(runnable)}/{len(catalog)}]"
+            f"[Mode: {self.args.mode}] [Scanners: {len(runnable)}/{len(catalog)}] "
+            f"[Scanner workers: {workers}]"
         )
         if skipped:
             print(
                 f"[*] [Scanner filter] [{skipped} skipped by mode/category/include/exclude]"
             )
-        # Plugins may own a worker pool. Running one plugin at a time keeps total
-        # concurrency bounded by --threads until every plugin uses ScanContext.
-        for path, module, metadata in runnable:
-            self.results.append(self.scan_module(path, module, metadata))
+        # Scanners are predominantly network I/O bound. Running them through a
+        # bounded worker pool overlaps that latency while the shared
+        # ``RequestBudget`` semaphore still caps concurrent transport requests
+        # to ``--threads`` and enforces the global ``--max-requests`` ceiling.
+        self.results = self._run_scanners(runnable, workers)
 
         output_path = (
             Path(self.args.output)
@@ -277,8 +327,10 @@ class RAScan:
                 "target": self.target.as_dict(),
                 "mode": self.args.mode,
                 "threads": self.args.threads,
+                "scanner_workers": self._scanner_worker_count(len(runnable)),
                 "max_requests": self.args.max_requests,
                 "request_count": self.context.budget.count,
+                "generated_at": utc_now(),
                 "scanner_count": len(self.results),
                 "discovered_scanner_count": len(catalog),
                 "skipped_scanner_count": skipped,
@@ -311,6 +363,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-x", "--target", help="Target hostname or IP (not a URL)")
     parser.add_argument("-t", "--threads", type=int, default=5, help="Global worker limit")
+    parser.add_argument(
+        "--scanner-workers",
+        type=int,
+        default=0,
+        help=(
+            "Number of scanner modules to execute concurrently "
+            "(0 = auto based on --threads). Request concurrency stays bounded "
+            "by --threads and --max-requests."
+        ),
+    )
     parser.add_argument("-o", "--output", help="JSON output path")
     parser.add_argument("-p", "--port", type=int, help="Custom target port")
     parser.add_argument("--path", default="/", help="Base URL path (default: /)")
@@ -370,6 +432,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.threads < 1:
         parser.error("--threads must be at least 1")
+    if args.scanner_workers < 0:
+        parser.error("--scanner-workers cannot be negative")
     if args.max_requests < 1:
         parser.error("--max-requests must be at least 1")
     if args.timeout <= 0:

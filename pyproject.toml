@@ -1,6 +1,6 @@
 [project]
 name = "R-AScan"
-version = "0.0.16"
+version = "0.0.17"
 description = "Dynamic web security scanner with normalized JSON and HTML reporting"
 authors = [
   { name="HarshXor", email="harshxor@incrustwerush.org" }

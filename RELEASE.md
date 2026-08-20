@@ -2,7 +2,7 @@
 
 PyPI filenames and versions are immutable. Version `0.1.0` was previously
 uploaded and deleted, so it cannot be reused even though it is absent from the
-visible release history. This release uses `0.0.16`.
+visible release history. This release uses `0.0.17`.
 
 ## Verify
 
@@ -22,8 +22,8 @@ python3 -m twine check dist/*
 Expected artifacts:
 
 ```text
-dist/r_ascan-0.0.16-py3-none-any.whl
-dist/r_ascan-0.0.16.tar.gz
+dist/r_ascan-0.0.17-py3-none-any.whl
+dist/r_ascan-0.0.17.tar.gz
 ```
 
 ## Upload
@@ -38,8 +38,8 @@ Upload with an explicit token username:
 python3 -m twine upload \
   --username __token__ \
   --verbose \
-  dist/r_ascan-0.0.16-py3-none-any.whl \
-  dist/r_ascan-0.0.16.tar.gz
+  dist/r_ascan-0.0.17-py3-none-any.whl \
+  dist/r_ascan-0.0.17.tar.gz
 ```
 
 Enter the complete `pypi-...` token when prompted. Do not put the token in the
@@ -50,7 +50,7 @@ command line, repository, or shell history.
 ```bash
 python3 -m venv /tmp/r-ascan-release-test
 source /tmp/r-ascan-release-test/bin/activate
-python -m pip install --upgrade R-AScan==0.0.16
+python -m pip install --upgrade R-AScan==0.0.17
 R-AScan --help
 R-AScan --list-scanners
 ```

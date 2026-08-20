@@ -56,7 +56,12 @@ class Finding:
     reproduction: str | None = None
     remediation: str | None = None
     cwe: str | None = None
+    cve: str | None = None
     owasp: str | None = None
+    references: list[str] = field(default_factory=list)
+    cvss_vector: str | None = None
+    cvss_score: float = 0.0
+    priority: str = "low"
     score: float = 0.0
 
     def as_dict(self) -> dict[str, Any]:

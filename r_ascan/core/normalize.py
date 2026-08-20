@@ -61,6 +61,67 @@ REMEDIATION = {
 
 RISK_WEIGHT = {"info": 0.0, "low": 2.0, "medium": 5.0, "high": 8.0, "critical": 10.0}
 
+# OWASP Top 10 (2021) category mapping per scanner id.
+OWASP = {
+    "sqli": "A03:2021-Injection",
+    "command_injection": "A03:2021-Injection",
+    "rce": "A03:2021-Injection",
+    "ssti": "A03:2021-Injection",
+    "ldap_injection": "A03:2021-Injection",
+    "xss": "A03:2021-Injection",
+    "lfi": "A01:2021-Broken Access Control",
+    "broken_access_control": "A01:2021-Broken Access Control",
+    "access_control": "A01:2021-Broken Access Control",
+    "open_redirect": "A01:2021-Broken Access Control",
+    "ssrf": "A10:2021-Server-Side Request Forgery",
+    "http_smuggler": "A06:2021-Vulnerable and Outdated Components",
+    "apache2_struts": "A06:2021-Vulnerable and Outdated Components",
+    "php_unit_rce": "A06:2021-Vulnerable and Outdated Components",
+    "elaina_cve_2025_32433": "A06:2021-Vulnerable and Outdated Components",
+    "sensitive_files": "A05:2021-Security Misconfiguration",
+    "metafiles_leak": "A05:2021-Security Misconfiguration",
+    "security_headers": "A05:2021-Security Misconfiguration",
+    "enumeration_directory": "A05:2021-Security Misconfiguration",
+}
+
+# Representative CVSS v3.1 base vector and score per normalized severity band.
+CVSS_PROFILE = {
+    "critical": ("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", 9.8),
+    "high": ("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N", 7.5),
+    "medium": ("CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N", 5.4),
+    "low": ("CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:L/I:N/A:N", 3.1),
+    "info": ("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N", 0.0),
+}
+
+REFERENCES = {
+    "sqli": ["https://owasp.org/www-community/attacks/SQL_Injection", "https://cwe.mitre.org/data/definitions/89.html"],
+    "command_injection": ["https://owasp.org/www-community/attacks/Command_Injection", "https://cwe.mitre.org/data/definitions/78.html"],
+    "rce": ["https://cwe.mitre.org/data/definitions/94.html"],
+    "lfi": ["https://owasp.org/www-community/attacks/Path_Traversal", "https://cwe.mitre.org/data/definitions/22.html"],
+    "xss": ["https://owasp.org/www-community/attacks/xss/", "https://cwe.mitre.org/data/definitions/79.html"],
+    "ssrf": ["https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/", "https://cwe.mitre.org/data/definitions/918.html"],
+    "ssti": ["https://owasp.org/www-project-web-security-testing-guide/", "https://cwe.mitre.org/data/definitions/1336.html"],
+    "open_redirect": ["https://cwe.mitre.org/data/definitions/601.html"],
+    "ldap_injection": ["https://owasp.org/www-community/attacks/LDAP_Injection", "https://cwe.mitre.org/data/definitions/90.html"],
+    "broken_access_control": ["https://owasp.org/Top10/A01_2021-Broken_Access_Control/", "https://cwe.mitre.org/data/definitions/284.html"],
+    "access_control": ["https://owasp.org/Top10/A01_2021-Broken_Access_Control/", "https://cwe.mitre.org/data/definitions/284.html"],
+    "http_smuggler": ["https://portswigger.net/web-security/request-smuggling", "https://cwe.mitre.org/data/definitions/444.html"],
+    "sensitive_files": ["https://owasp.org/www-project-web-security-testing-guide/", "https://cwe.mitre.org/data/definitions/200.html"],
+    "metafiles_leak": ["https://cwe.mitre.org/data/definitions/200.html"],
+    "security_headers": ["https://owasp.org/www-project-secure-headers/", "https://cwe.mitre.org/data/definitions/693.html"],
+}
+
+
+def _cve_from_scanner(scanner_id: str, item: Any) -> str | None:
+    if isinstance(item, dict):
+        candidate = item.get("cve") or item.get("CVE")
+        if candidate:
+            return str(candidate)
+    known = {
+        "elaina_cve_2025_32433": "CVE-2025-32433",
+    }
+    return known.get(scanner_id)
+
 
 def _endpoint(value: Any, target: Target) -> str:
     if isinstance(value, dict):
@@ -142,6 +203,7 @@ def normalize_result(
             continue
         seen.add(finding_id)
         title = metadata.title
+        cvss_vector, cvss_score = CVSS_PROFILE.get(severity, CVSS_PROFILE["info"])
         finding = Finding(
             id=finding_id,
             scanner_id=metadata.id,
@@ -157,6 +219,11 @@ def normalize_result(
             reproduction=item.get("curl") if isinstance(item.get("curl"), str) else None,
             remediation=REMEDIATION.get(metadata.id),
             cwe=CWE.get(metadata.id),
+            cve=_cve_from_scanner(metadata.id, item),
+            owasp=OWASP.get(metadata.id),
+            references=list(REFERENCES.get(metadata.id, [])),
+            cvss_vector=cvss_vector,
+            cvss_score=cvss_score,
             score=RISK_WEIGHT.get(severity, 0.0),
         )
         findings.append(finding)
@@ -174,6 +241,7 @@ def normalize_result(
                 endpoint = str(entry)
                 identity = f"{metadata.id}:{key}:{endpoint}"
                 finding_id = hashlib.sha256(identity.encode()).hexdigest()[:16]
+                cvss_vector, cvss_score = CVSS_PROFILE.get(severity, CVSS_PROFILE["info"])
                 findings.append(Finding(
                     id=finding_id,
                     scanner_id=metadata.id,
@@ -187,6 +255,10 @@ def normalize_result(
                     evidence={"source": key, "details": value[entry] if isinstance(value, dict) else entry},
                     remediation=REMEDIATION.get(metadata.id),
                     cwe=CWE.get(metadata.id),
+                    owasp=OWASP.get(metadata.id),
+                    references=list(REFERENCES.get(metadata.id, [])),
+                    cvss_vector=cvss_vector,
+                    cvss_score=cvss_score,
                     score=RISK_WEIGHT[severity],
                 ))
 
